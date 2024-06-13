@@ -1,4 +1,4 @@
-.PHONY: all build clean cross test
+.PHONY: all build clean cross test vet
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
 VERSION_LDFLAGS=-X github.com/crc-org/macadam/pkg/cmdline.gitVersion=$(GIT_VERSION)
@@ -58,3 +58,7 @@ force-build:
 .PHONY: lint
 lint: $(TOOLS_BINDIR)/golangci-lint
 	"$(TOOLS_BINDIR)"/golangci-lint run
+
+.PHONY: vet
+vet:
+	go vet ./...
