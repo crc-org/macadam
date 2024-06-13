@@ -1,0 +1,49 @@
+name: Build
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "*"
+  pull_request: {}
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+        - oldstable
+        - stable
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: >-
+          WORKAROUND: Fetch tags that points to the revisions
+          checked-out(actions/checkout#1467)
+        run: |-
+          git fetch --tags --force
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build
+        run: make
+      - name: Upload macadam artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amd64 linux binary
+          path: "./bin/macadam-linux-amd64"
+  test:
+      - name: Test
+        if: matrix.os != 'macOS-11'
+        run: make test
+  lint:
+      - name: vet
+        run: make vet
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
