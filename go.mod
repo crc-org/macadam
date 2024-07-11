@@ -9,7 +9,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 )
 
-require github.com/containers/common v0.59.1
+require github.com/containers/common v0.59.2
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/containers/buildah v1.36.0 // indirect
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363 // indirect
-	github.com/containers/image/v5 v5.31.0 // indirect
+	github.com/containers/image/v5 v5.31.1 // indirect
 	github.com/containers/libhvee v0.7.1 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.1.10 // indirect
