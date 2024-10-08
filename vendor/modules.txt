@@ -357,7 +357,7 @@ github.com/coreos/go-systemd/v22/dbus
 ## explicit; go 1.22.0
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
-# github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
+# github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b => /home/teuf/dev/machine
 ## explicit; go 1.17
 github.com/crc-org/machine/libmachine/drivers
 github.com/crc-org/machine/libmachine/state
@@ -1076,4 +1076,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.20
 tags.cncf.io/container-device-interface/pkg/parser
 # github.com/containers/podman/v5 => /home/teuf/freesoftware/github.com/containers/podman
-# github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
+# github.com/crc-org/machine => /home/teuf/dev/machine
