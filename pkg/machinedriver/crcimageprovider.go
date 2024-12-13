@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	crcos "github.com/crc-org/crc/v2/pkg/os"
 )
 
 type CrcImagePuller struct {
@@ -93,7 +92,7 @@ func (puller *CrcImagePuller) Download() error {
 
 	slog.Info(fmt.Sprintf("%+v", puller))
 	slog.Info("file copy", "source", puller.sourcePath, "dest", imagePath.GetPath())
-	if err := crcos.CopyFile(puller.sourcePath, imagePath.GetPath()); err != nil {
+	if err := copyFile(puller.sourcePath, imagePath.GetPath()); err != nil {
 		return err
 	}
 	/*
