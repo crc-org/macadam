@@ -251,7 +251,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20241127161353-592fb5161f59
+# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20241213090455-63ea6fa04b45
 ## explicit; go 1.22.6
 github.com/containers/podman/v5/libpod/define
 github.com/containers/podman/v5/pkg/errorhandling
@@ -1075,5 +1075,5 @@ gopkg.in/yaml.v3
 # tags.cncf.io/container-device-interface v0.8.0
 ## explicit; go 1.20
 tags.cncf.io/container-device-interface/pkg/parser
-# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20241127161353-592fb5161f59
+# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20241213090455-63ea6fa04b45
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
