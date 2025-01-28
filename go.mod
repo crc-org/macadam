@@ -5,7 +5,7 @@ go 1.22.6
 toolchain go1.23.2
 
 require (
-	github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0
+	github.com/containers/common v0.61.1
 	github.com/containers/podman/v5 v5.3.1
 	github.com/crc-org/crc/v2 v2.44.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
@@ -37,12 +37,12 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33 // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.0 // indirect
-	github.com/containers/image/v5 v5.33.0 // indirect
+	github.com/containers/image/v5 v5.33.1 // indirect
 	github.com/containers/libhvee v0.9.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
 	github.com/containers/psgo v1.9.0 // indirect
-	github.com/containers/storage v1.56.0 // indirect
+	github.com/containers/storage v1.56.1 // indirect
 	github.com/containers/winquit v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 // indirect
 	github.com/crc-org/vfkit v0.5.1 // indirect
