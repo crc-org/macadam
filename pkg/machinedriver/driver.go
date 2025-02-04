@@ -614,3 +614,11 @@ func (d *Driver) UpdateSSHConfig(sshConfig drivers.SSHConfig) error {
 
 	return d.vmConfig.Write()
 }
+
+func (d *Driver) GetVmConfig() *vmconfigs.MachineConfig {
+	return d.vmConfig
+}
+
+func (d *Driver) GetVMType() define.VMType {
+	return d.vmProvider.VMType()
+}
