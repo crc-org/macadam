@@ -14,6 +14,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 )
 
+require github.com/containers/storage v1.56.0
+
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
@@ -42,7 +44,6 @@ require (
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
 	github.com/containers/psgo v1.9.0 // indirect
-	github.com/containers/storage v1.56.0 // indirect
 	github.com/containers/winquit v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 // indirect
 	github.com/crc-org/vfkit v0.5.1 // indirect
@@ -179,6 +180,8 @@ require (
 	tags.cncf.io/container-device-interface v0.8.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20241127161353-592fb5161f59
+replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
+
+replace github.com/containers/gvisor-tap-vsock => github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990

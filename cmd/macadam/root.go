@@ -8,6 +8,7 @@ import (
 
 	"github.com/cfergeau/macadam/cmd/macadam/registry"
 	"github.com/cfergeau/macadam/pkg/cmdline"
+	"github.com/cfergeau/macadam/pkg/env"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/spf13/cobra"
 )
@@ -52,6 +53,7 @@ var (
 		TraverseChildren:      true,
 		Version:               cmdline.Version(),
 		DisableFlagsInUseLine: true,
+		PersistentPreRunE:     machinePreRunE,
 	}
 
 	// defaultLogLevel = "warn"
@@ -81,4 +83,8 @@ func Execute() {
 	}
 
 	os.Exit(registry.GetExitCode())
+}
+
+func machinePreRunE(c *cobra.Command, args []string) error {
+	return env.SetupEnvironment()
 }

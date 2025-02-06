@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/storage/pkg/homedir"
 )
 
@@ -35,7 +36,8 @@ func GetRootlessRuntimeDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	runtimeDir := filepath.Join(data, "containers", "podman")
+	rtDir := env.GetRuntimeDirSuffix()
+	runtimeDir := filepath.Join(data, "containers", rtDir)
 	return runtimeDir, nil
 }
 

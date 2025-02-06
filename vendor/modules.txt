@@ -157,7 +157,7 @@ github.com/containers/common/pkg/supplemented
 github.com/containers/common/pkg/timetype
 github.com/containers/common/pkg/util
 github.com/containers/common/version
-# github.com/containers/gvisor-tap-vsock v0.8.0
+# github.com/containers/gvisor-tap-vsock v0.8.0 => github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
 # github.com/containers/image/v5 v5.33.0
@@ -251,7 +251,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20241127161353-592fb5161f59
+# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104
 ## explicit; go 1.22.6
 github.com/containers/podman/v5/libpod/define
 github.com/containers/podman/v5/pkg/errorhandling
@@ -1075,5 +1075,6 @@ gopkg.in/yaml.v3
 # tags.cncf.io/container-device-interface v0.8.0
 ## explicit; go 1.20
 tags.cncf.io/container-device-interface/pkg/parser
-# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20241127161353-592fb5161f59
+# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
+# github.com/containers/gvisor-tap-vsock => github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990
