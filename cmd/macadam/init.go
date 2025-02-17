@@ -186,8 +186,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid name %q: %w", machineName, ldefine.RegexError)
 	}
 
+	puller := imagepullers.NewNoopImagePuller(machineName, provider.VMType())
+
 	initOpts := macadam.DefaultInitOpts(machineName)
-	initOpts.ImagePuller = &imagepullers.NoopImagePuller{}
+	initOpts.ImagePuller = puller
 	initOpts.ImagePuller.SetSourceURI(diskImage)
 	initOpts.Name = machineName
 	initOpts.Image = diskImage
