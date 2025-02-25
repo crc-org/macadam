@@ -27,12 +27,12 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOpts           = define.InitOptions{}
-	initOptionalFlags  = InitOptionalFlags{}
+	initOpts = define.InitOptions{}
+	// initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = "macadam"
-	now                bool
-	sshIdentityPath    string
-	username           string
+	// now                bool
+	sshIdentityPath string
+	username        string
 )
 
 // Flags which have a meaning when unspecified that differs from the flag default

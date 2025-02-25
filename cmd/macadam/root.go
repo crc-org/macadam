@@ -54,18 +54,18 @@ var (
 		DisableFlagsInUseLine: true,
 	}
 
-	defaultLogLevel = "warn"
-	logLevel        = defaultLogLevel
-	dockerConfig    = ""
-	debug           bool
+	// defaultLogLevel = "warn"
+	// logLevel        = defaultLogLevel
+	// dockerConfig    = ""
+	// debug           bool
 
-	requireCleanup = true
+	// requireCleanup = true
 
 	// Defaults for capturing/redirecting the command output since (the) cobra is
 	// global-hungry and doesn't allow you to attach anything that allows us to
 	// transform the noStdout BoolVar to a string that we can assign to useStdout.
-	noStdout  = false
-	useStdout = ""
+	// noStdout  = false
+	// useStdout = ""
 )
 
 func init() {
