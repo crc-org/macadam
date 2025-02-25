@@ -52,7 +52,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: 'oldstable'
       - name: Test
         run: make test
   lint:
@@ -66,6 +66,6 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: 'oldstable'
       - name: Run 'make check'
         run: make check
