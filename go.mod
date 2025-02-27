@@ -1,4 +1,4 @@
-module github.com/cfergeau/macadam
+module github.com/crc-org/macadam
 
 go 1.22.6
 

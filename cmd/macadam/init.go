@@ -5,9 +5,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
-	"github.com/cfergeau/macadam/pkg/imagepullers"
-	macadam "github.com/cfergeau/macadam/pkg/machinedriver"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	"github.com/crc-org/macadam/pkg/imagepullers"
+	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/containers/common/pkg/completion"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/machine/define"

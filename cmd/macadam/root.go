@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
-	"github.com/cfergeau/macadam/pkg/cmdline"
-	"github.com/cfergeau/macadam/pkg/env"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	"github.com/crc-org/macadam/pkg/cmdline"
+	"github.com/crc-org/macadam/pkg/env"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/spf13/cobra"
 )

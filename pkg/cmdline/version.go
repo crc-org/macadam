@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	// set using the '-X github.com/cfergeau/macadam/pkg/cmdline.gitVersion' linker flag
+	// set using the '-X github.com/crc-org/macadam/pkg/cmdline.gitVersion' linker flag
 	gitVersion = "unknown"
 
 	// set through .gitattributes when `git archive` is used
