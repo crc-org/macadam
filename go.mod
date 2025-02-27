@@ -36,7 +36,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33 // indirect
-	github.com/containers/gvisor-tap-vsock v0.8.3 // indirect
+	github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be // indirect
 	github.com/containers/image/v5 v5.33.0 // indirect
 	github.com/containers/libhvee v0.9.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
@@ -183,5 +183,3 @@ require (
 replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
-
-replace github.com/containers/gvisor-tap-vsock => github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990
