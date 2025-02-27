@@ -53,6 +53,8 @@ type MachineConfig struct {
 	Starting bool
 
 	Rosetta bool
+
+	CloudInit bool
 }
 
 type machineImage interface { //nolint:unused

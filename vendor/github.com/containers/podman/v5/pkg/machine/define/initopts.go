@@ -21,4 +21,5 @@ type InitOptions struct {
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
 	USBs               []string
 	ImagePuller        ImagePuller
+	CloudInit          bool
 }

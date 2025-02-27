@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/cloudinit"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/sockets"
@@ -141,10 +143,6 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 
 // StartGenericAppleVM is wrapped by apple provider methods and starts the vm
 func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootloader vfConfig.Bootloader, endpoint string) (func() error, func() error, error) {
-	var (
-		ignitionSocket *define.VMFile
-	)
-
 	// Add networking
 	netDevice, err := vfConfig.VirtioNetNew(applehvMACAddress)
 	if err != nil {
@@ -209,11 +207,6 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		return nil, nil, err
 	}
 
-	machineDataDir, err := mc.DataDir()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	cmd.Args = append(cmd.Args, endpointArgs...)
 
 	firstBoot, err := mc.IsFirstBoot()
@@ -231,31 +224,18 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 	}
 
 	if firstBoot {
-		// If this is the first boot of the vm, we need to add the vsock
-		// device to vfkit so we can inject the ignition file
-		socketName := fmt.Sprintf("%s-%s", mc.Name, ignitionSocketName)
-		ignitionSocket, err = machineDataDir.AppendToNewVMFile(socketName, &socketName)
+		var firstBootCli []string
+		if mc.CloudInit {
+			firstBootCli, err = getFirstBootAppleVMCloudInit(mc)
+		} else {
+			firstBootCli, err = getFirstBootAppleVMIgnition(mc)
+		}
+
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := ignitionSocket.Delete(); err != nil {
-			logrus.Errorf("unable to delete ignition socket: %q", err)
-		}
-
-		ignitionVsockDeviceCLI, err := GetIgnitionVsockDeviceAsCLI(ignitionSocket.GetPath())
-		if err != nil {
-			return nil, nil, err
-		}
-		cmd.Args = append(cmd.Args, ignitionVsockDeviceCLI...)
-
 		logrus.Debug("first boot detected")
-		logrus.Debugf("serving ignition file over %s", ignitionSocket.GetPath())
-		go func() {
-			if err := ServeIgnitionOverSock(ignitionSocket, mc); err != nil {
-				logrus.Error(err)
-			}
-			logrus.Debug("ignition vsock server exited")
-		}()
+		cmd.Args = append(cmd.Args, firstBootCli...)
 	}
 
 	logrus.Debugf("listening for ready on: %s", readySocket.GetPath())
@@ -349,6 +329,76 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		return nil
 	}
 	return cmd.Process.Release, returnFunc, nil
+}
+
+func getFirstBootAppleVMIgnition(mc *vmconfigs.MachineConfig) ([]string, error) {
+	machineDataDir, err := mc.DataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// If this is the first boot of the vm, we need to add the vsock
+	// device to vfkit so we can inject the ignition file
+	socketName := fmt.Sprintf("%s-%s", mc.Name, ignitionSocketName)
+	ignitionSocket, err := machineDataDir.AppendToNewVMFile(socketName, &socketName)
+	if err != nil {
+		return nil, err
+	}
+	if err := ignitionSocket.Delete(); err != nil {
+		logrus.Errorf("unable to delete ignition socket: %q", err)
+	}
+
+	ignitionVsockDeviceCLI, err := GetIgnitionVsockDeviceAsCLI(ignitionSocket.GetPath())
+	if err != nil {
+		return nil, err
+	}
+
+	logrus.Debugf("serving ignition file over %s", ignitionSocket.GetPath())
+	go func() {
+		if err := ServeIgnitionOverSock(ignitionSocket, mc); err != nil {
+			logrus.Error(err)
+		}
+		logrus.Debug("ignition vsock server exited")
+	}()
+
+	return ignitionVsockDeviceCLI, nil
+}
+
+func getFirstBootAppleVMCloudInit(mc *vmconfigs.MachineConfig) ([]string, error) {
+	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
+	if err != nil {
+		return nil, err
+	}
+
+	machineDataDir, err := mc.DataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// delete previous user-data, if any
+	if err := os.Remove(filepath.Join(machineDataDir.Path, "user-data")); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	// we generate the user-data file
+	userDataFile, err := cloudinit.GenerateUserData(machineDataDir.Path, cloudinit.UserData{
+		Users: []cloudinit.User{
+			cloudinit.User{
+				Name:   mc.SSH.RemoteUsername,
+				Sudo:   "ALL=(ALL) NOPASSWD:ALL",
+				Shell:  "/bin/bash",
+				Groups: "users",
+				SSHKeys: []string{
+					sshKey,
+				},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return []string{"--cloud-init", userDataFile}, nil
 }
 
 // CheckProcessRunning checks non blocking if the pid exited
