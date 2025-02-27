@@ -10,7 +10,7 @@ require (
 	github.com/crc-org/crc/v2 v2.47.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6 // indirect
 )
 
