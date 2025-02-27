@@ -33,7 +33,7 @@ func (puller *NoopImagePuller) SetSourceURI(sourcePath string) {
 
 func imageExtension(sourceURI string) string {
 	if strings.HasSuffix(sourceURI, ".tar.gz") {
-		return "tar.gz"
+		return ".tar.gz"
 	}
 	return filepath.Ext(sourceURI)
 }
@@ -50,7 +50,7 @@ func (puller *NoopImagePuller) LocalPath() (*define.VMFile, error) {
 		return nil, err
 	}
 
-	vmFile, err := dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s.%s", puller.machineName, puller.vmType.String(), imageExtension(puller.sourceURI)), nil)
+	vmFile, err := dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s%s", puller.machineName, puller.vmType.String(), imageExtension(puller.sourceURI)), nil)
 	if err != nil {
 		return nil, err
 	}
