@@ -196,6 +196,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.DiskSize = 50
 	initOpts.SSHIdentityPath = sshIdentityPath
 	initOpts.Username = username
+	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
 	/*
 		_, _, err = shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
 		if err == nil {
