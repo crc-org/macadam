@@ -1,8 +1,6 @@
 module github.com/crc-org/macadam
 
-go 1.22.6
-
-toolchain go1.23.2
+go 1.23
 
 require (
 	github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0
