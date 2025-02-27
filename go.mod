@@ -7,14 +7,11 @@ toolchain go1.23.2
 require (
 	github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0
 	github.com/containers/podman/v5 v5.3.1
+	github.com/containers/storage v1.57.1
 	github.com/crc-org/crc/v2 v2.47.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6 // indirect
 )
-
-require github.com/containers/storage v1.57.1
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -94,6 +91,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -145,6 +143,7 @@ require (
 	github.com/sigstore/rekor v1.3.6 // indirect
 	github.com/sigstore/sigstore v1.8.9 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.19.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
