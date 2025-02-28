@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
 
 	"github.com/spf13/cobra"
 )

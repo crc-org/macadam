@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
-	macadam "github.com/cfergeau/macadam/pkg/machinedriver"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/containers/common/pkg/completion"
 	"github.com/crc-org/machine/libmachine/state"
 	"github.com/spf13/cobra"

@@ -33,8 +33,6 @@ github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyY
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990 h1:NrYHaizZuMJX+7C/y5YS0PRDt1JFKRfsvEp0DBNQEuo=
-github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990/go.mod h1:gjdY4JBWnynrXsxT8+OM7peEOd4FCZpoOWjSadHva0g=
 github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078 h1:KpgRncgq6ZiWDnLe6R58dJjd6QSuU7RDqRrpl11Dxcg=
 github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078/go.mod h1:trWeQimjfE3dJ8qWOxI4ePtYm13aecK42bf01s6h/Nc=
 github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104 h1:QPRzqxScaJAsQc3qvprUeiO01FGPMxF5AQKP8D8Ez5o=
@@ -72,6 +70,8 @@ github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33 h1:Ih6KuyByK
 github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33/go.mod h1:RxIuKhwTpRl3ma4d4BF6QzSSeg9zNNvo/xhYJOKeDQs=
 github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0 h1:Vh8IytxprODmjd4sALcSVUzhT28vT537UWsfCXcahWk=
 github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0/go.mod h1:3mUU2/PxkOwvL46fmaRVj0YfBDBxNPOMctIvBHWo4Ak=
+github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be h1:/OVz49uNNL1dZsljxDn+scFbZv9GVYB5rzA8pMF5J4o=
+github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be/go.mod h1:Guh8d/SiuJ9jlnuIyUjcKkFKQ2qpLhNKPGD1jMoIt2Q=
 github.com/containers/image/v5 v5.33.0 h1:6oPEFwTurf7pDTGw7TghqGs8K0+OvPtY/UyzU0B2DfE=
 github.com/containers/image/v5 v5.33.0/go.mod h1:T7HpASmvnp2H1u4cyckMvCzLuYgpD18dSmabSw0AcHk=
 github.com/containers/libhvee v0.9.0 h1:5UxJMka1lDfxTeITA25Pd8QVVttJAG43eQS1Getw1tc=

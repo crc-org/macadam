@@ -1,7 +1,7 @@
 .PHONY: all build check clean cross test
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
-VERSION_LDFLAGS=-X github.com/cfergeau/macadam/pkg/cmdline.gitVersion=$(GIT_VERSION)
+VERSION_LDFLAGS=-X github.com/crc-org/macadam/pkg/cmdline.gitVersion=$(GIT_VERSION)
 # opengpg and btrfs support are used by github.com/containers/image and
 # github.com/containers/storage when container images are fetched.
 # These require external C libraries and their headers, it's simpler to disable

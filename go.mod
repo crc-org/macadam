@@ -1,20 +1,15 @@
-module github.com/cfergeau/macadam
+module github.com/crc-org/macadam
 
-go 1.22.6
-
-toolchain go1.23.2
+go 1.23
 
 require (
 	github.com/containers/common v0.61.1-0.20241125172552-a801fac4edc0
 	github.com/containers/podman/v5 v5.3.1
+	github.com/containers/storage v1.57.1
 	github.com/crc-org/crc/v2 v2.47.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6 // indirect
 )
-
-require github.com/containers/storage v1.57.1
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -39,7 +34,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33 // indirect
-	github.com/containers/gvisor-tap-vsock v0.8.3 // indirect
+	github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be // indirect
 	github.com/containers/image/v5 v5.33.0 // indirect
 	github.com/containers/libhvee v0.9.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
@@ -94,6 +89,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -145,6 +141,7 @@ require (
 	github.com/sigstore/rekor v1.3.6 // indirect
 	github.com/sigstore/sigstore v1.8.9 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.19.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
@@ -184,5 +181,3 @@ require (
 replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250224120923-ac315765d104
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
-
-replace github.com/containers/gvisor-tap-vsock => github.com/cfergeau/gvisor-tap-vsock v0.7.3-0.20241209155656-dc16c2d91990

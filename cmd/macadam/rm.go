@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
-	macadam "github.com/cfergeau/macadam/pkg/machinedriver"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/spf13/cobra"
 )

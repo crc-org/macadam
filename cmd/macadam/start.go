@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/cfergeau/macadam/cmd/macadam/registry"
-	macadam "github.com/cfergeau/macadam/pkg/machinedriver"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/provider"
