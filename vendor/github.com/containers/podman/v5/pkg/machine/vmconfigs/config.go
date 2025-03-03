@@ -54,6 +54,8 @@ type MachineConfig struct {
 
 	Rosetta bool
 
+	Ansible *AnsibleConfig
+
 	CloudInit bool
 }
 
@@ -149,4 +151,10 @@ type VMStats struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+}
+
+type AnsibleConfig struct {
+	PlaybookPath string
+	Contents     string
+	User         string
 }
