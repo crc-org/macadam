@@ -28,7 +28,6 @@ const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /et
 const changePort = `sed -E -i 's/^Port[[:space:]]+[0-9]+/Port %d/' /etc/ssh/sshd_config`
 
 const configServices = `ln -fs /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service
-ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.wants/podman.socket
 rm -f /etc/systemd/system/getty.target.wants/console-getty.service
 rm -f /etc/systemd/system/getty.target.wants/getty@tty1.service
 rm -f /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
@@ -42,6 +41,10 @@ adduser -m [USER] -G wheel
 mkdir -p /home/[USER]/.config/systemd/[USER]/
 chown [USER]:[USER] /home/[USER]/.config
 `
+
+const configServicesPodman = `mkdir -p /etc/containers/registries.conf.d
+ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.wants/podman.socket
+` + configServices
 
 const sudoers = `%wheel        ALL=(ALL)       NOPASSWD: ALL
 `

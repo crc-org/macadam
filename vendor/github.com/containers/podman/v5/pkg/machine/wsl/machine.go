@@ -154,7 +154,11 @@ func configureSystem(mc *vmconfigs.MachineConfig, dist string, ansibleConfig *vm
 		return fmt.Errorf("could not configure SSH port for guest OS: %w", err)
 	}
 
-	if err := wslPipe(withUser(configServices, user), dist, "sh"); err != nil {
+	configServicesScript := configServicesPodman
+	if !mc.Capabilities.GetForwardSockets() {
+		configServicesScript = configServices
+	}
+	if err := wslPipe(withUser(configServicesScript, user), dist, "sh"); err != nil {
 		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
 	}
 
@@ -173,37 +177,39 @@ func configureSystem(mc *vmconfigs.MachineConfig, dist string, ansibleConfig *vm
 		}
 	}
 
-	lingerCmd := withUser("cat > /home/[USER]/.config/systemd/[USER]/linger-example.service", user)
-	if err := wslPipe(lingerService, dist, "sh", "-c", lingerCmd); err != nil {
-		return fmt.Errorf("could not generate linger service for guest OS: %w", err)
-	}
+	if mc.Capabilities.GetForwardSockets() {
+		lingerCmd := withUser("cat > /home/[USER]/.config/systemd/[USER]/linger-example.service", user)
+		if err := wslPipe(lingerService, dist, "sh", "-c", lingerCmd); err != nil {
+			return fmt.Errorf("could not generate linger service for guest OS: %w", err)
+		}
 
-	if err := enableUserLinger(mc, dist); err != nil {
-		return err
-	}
+		if err := enableUserLinger(mc, dist); err != nil {
+			return err
+		}
 
-	if err := wslPipe(withUser(lingerSetup, user), dist, "sh"); err != nil {
-		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
-	}
+		if err := wslPipe(withUser(lingerSetup, user), dist, "sh"); err != nil {
+			return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
+		}
 
-	if err := wslPipe(containersConf, dist, "sh", "-c", "cat > /etc/containers/containers.conf"); err != nil {
-		return fmt.Errorf("could not create containers.conf for guest OS: %w", err)
-	}
+		if err := wslPipe(containersConf, dist, "sh", "-c", "cat > /etc/containers/containers.conf"); err != nil {
+			return fmt.Errorf("could not create containers.conf for guest OS: %w", err)
+		}
 
-	if err := configureRegistries(dist); err != nil {
-		return err
-	}
+		if err := configureRegistries(dist); err != nil {
+			return err
+		}
 
-	if err := setupPodmanDockerSock(dist, mc.HostUser.Rootful); err != nil {
-		return err
-	}
+		if err := setupPodmanDockerSock(dist, mc.HostUser.Rootful); err != nil {
+			return err
+		}
 
-	if err := wslInvoke(dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
-		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
-	}
+		if err := wslInvoke(dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
+			return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
+		}
 
-	if err := configureBindMounts(dist, user); err != nil {
-		return err
+		if err := configureBindMounts(dist, user); err != nil {
+			return err
+		}
 	}
 
 	return changeDistUserModeNetworking(dist, user, mc.ImagePath.GetPath(), mc.WSLHypervisor.UserModeNetworking)

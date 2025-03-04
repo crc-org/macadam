@@ -204,6 +204,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.SSHIdentityPath = initOptsFromFlags.SSHIdentityPath
 	initOpts.Username = initOptsFromFlags.Username
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
+	initOpts.Capabilities = &define.MachineCapabilities{
+		HasReadyUnit:   false,
+		ForwardSockets: false,
+	}
 	/*
 		_, _, err = shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
 		if err == nil {

@@ -56,7 +56,8 @@ type MachineConfig struct {
 
 	Ansible *AnsibleConfig
 
-	CloudInit bool
+	CloudInit    bool
+	Capabilities *define.MachineCapabilities
 }
 
 type machineImage interface { //nolint:unused

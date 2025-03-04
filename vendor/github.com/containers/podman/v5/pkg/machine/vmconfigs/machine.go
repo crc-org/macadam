@@ -181,11 +181,14 @@ func (mc *MachineConfig) Remove(machines map[string]bool, saveIgnition, saveImag
 
 	rmFiles := []string{
 		mc.configPath.GetPath(),
-		readySocket.GetPath(),
 		gvProxySocket.GetPath(),
 		apiSocket.GetPath(),
 		logPath.GetPath(),
 	}
+	if mc.Capabilities.GetHasReadyUnit() {
+		rmFiles = append(rmFiles, readySocket.GetPath())
+	}
+
 	if !saveImage {
 		mc.ImagePath.GetPath()
 	}
@@ -195,8 +198,10 @@ func (mc *MachineConfig) Remove(machines map[string]bool, saveIgnition, saveImag
 
 	mcRemove := func() error {
 		var errs []error
-		if err := connection.RemoveConnections(machines, mc.Name, mc.Name+"-root"); err != nil {
-			errs = append(errs, err)
+		if mc.Capabilities.GetForwardSockets() {
+			if err := connection.RemoveConnections(machines, mc.Name, mc.Name+"-root"); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if !saveIgnition {
@@ -209,8 +214,10 @@ func (mc *MachineConfig) Remove(machines map[string]bool, saveIgnition, saveImag
 				errs = append(errs, err)
 			}
 		}
-		if err := readySocket.Delete(); err != nil {
-			errs = append(errs, err)
+		if mc.Capabilities.GetHasReadyUnit() {
+			if err := readySocket.Delete(); err != nil {
+				errs = append(errs, err)
+			}
 		}
 		if err := gvProxySocket.Delete(); err != nil {
 			errs = append(errs, err)

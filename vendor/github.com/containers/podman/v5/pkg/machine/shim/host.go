@@ -83,6 +83,13 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		return err
 	}
 
+	if opts.Capabilities == nil {
+		var defaultCapabilities *machineDefine.MachineCapabilities = nil
+		opts.Capabilities = &machineDefine.MachineCapabilities{
+			HasReadyUnit:   defaultCapabilities.GetHasReadyUnit(),
+			ForwardSockets: defaultCapabilities.GetForwardSockets(),
+		}
+	}
 	/* check the path to env.GetSSHIdentityPath */
 	/* ----> Can we make it configurable in initopts? */
 	/* Can we dynamically update vmconfig.SSH ? */
@@ -112,6 +119,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	}
 
 	mc.Version = vmconfigs.MachineConfigVersion
+	mc.Capabilities = opts.Capabilities
 
 	createOpts := machineDefine.CreateVMOpts{
 		Name: opts.Name,
@@ -250,18 +258,20 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	}
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
-	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
-		return err
-	}
-
-	cleanup := func() error {
-		machines, err := provider.GetAllMachinesAndRootfulness()
-		if err != nil {
+	if mc.Capabilities.GetForwardSockets() {
+		if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
 			return err
 		}
-		return connection.RemoveConnections(machines, mc.Name, mc.Name+"-root")
+
+		cleanup := func() error {
+			machines, err := provider.GetAllMachinesAndRootfulness()
+			if err != nil {
+				return err
+			}
+			return connection.RemoveConnections(machines, mc.Name, mc.Name+"-root")
+		}
+		callbackFuncs.Add(cleanup)
 	}
-	callbackFuncs.Add(cleanup)
 
 	logrus.Warn("CreateVM")
 	err = mp.CreateVM(createOpts, mc, &ignBuilder)
@@ -399,12 +409,14 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 	}
 
 	// Remove Ready Socket
-	readySocket, err := mc.ReadySocket()
-	if err != nil {
-		return err
-	}
-	if err := readySocket.Delete(); err != nil {
-		return err
+	if mc.Capabilities.GetHasReadyUnit() {
+		readySocket, err := mc.ReadySocket()
+		if err != nil {
+			return err
+		}
+		if err := readySocket.Delete(); err != nil {
+			return err
+		}
 	}
 
 	// Stop GvProxy and remove PID file
@@ -502,12 +514,14 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		return err
 	}
 
-	if WaitForReady == nil {
-		return errors.New("no valid wait function returned")
-	}
+	if mc.Capabilities.GetHasReadyUnit() {
+		if WaitForReady == nil {
+			return errors.New("no valid wait function returned")
+		}
 
-	if err := WaitForReady(); err != nil {
-		return err
+		if err := WaitForReady(); err != nil {
+			return err
+		}
 	}
 
 	if releaseCmd != nil && releaseCmd() != nil { // some providers can return nil here (hyperv)
