@@ -5,14 +5,14 @@ package main
 import (
 	"fmt"
 
-	"github.com/crc-org/macadam/cmd/macadam/registry"
-	"github.com/crc-org/macadam/pkg/imagepullers"
-	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/containers/common/pkg/completion"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
+	"github.com/crc-org/macadam/cmd/macadam/registry"
+	"github.com/crc-org/macadam/pkg/imagepullers"
+	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOpts = define.InitOptions{}
+	initOptsFromFlags = define.InitOptions{}
 	// initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = "macadam"
 	// now                bool
@@ -52,11 +52,11 @@ func init() {
 	flags := initCmd.Flags()
 
 	ImageFlagName := "image"
-	flags.StringVar(&initOpts.Image, ImageFlagName, "", "Bootable image for machine")
+	flags.StringVar(&initOptsFromFlags.Image, ImageFlagName, "", "Bootable image for machine")
 	_ = initCmd.RegisterFlagCompletionFunc(ImageFlagName, completion.AutocompleteDefault)
 
 	MachineNameFlagName := "machine-name"
-	flags.StringVar(&initOpts.Name, MachineNameFlagName, defaultMachineName, "Name for the machine")
+	flags.StringVar(&initOptsFromFlags.Name, MachineNameFlagName, defaultMachineName, "Name for the machine")
 	_ = initCmd.RegisterFlagCompletionFunc(MachineNameFlagName, completion.AutocompleteDefault)
 
 	SSHIdentityPathFlagName := "ssh-identity-path"
@@ -67,33 +67,20 @@ func init() {
 	flags.StringVar(&username, UsernameFlagName, "", "Username used in image")
 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
-	/* flags := initCmd.Flags()
-	cfg := registry.PodmanConfig()
-
 	cpusFlagName := "cpus"
-	flags.Uint64Var(
-		&initOpts.CPUS,
-		cpusFlagName, cfg.ContainersConfDefaultsRO.Machine.CPUs,
-		"Number of CPUs",
-	)
+	flags.Uint64Var(&initOptsFromFlags.CPUS, cpusFlagName, 2, "Number of CPUs")
 	_ = initCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
 
 	diskSizeFlagName := "disk-size"
-	flags.Uint64Var(
-		&initOpts.DiskSize,
-		diskSizeFlagName, cfg.ContainersConfDefaultsRO.Machine.DiskSize,
-		"Disk size in GiB",
-	)
-
+	flags.Uint64Var(&initOptsFromFlags.DiskSize, diskSizeFlagName, 20, "Disk size in GiB")
 	_ = initCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
 
 	memoryFlagName := "memory"
-	flags.Uint64VarP(
-		&initOpts.Memory,
-		memoryFlagName, "m", cfg.ContainersConfDefaultsRO.Machine.Memory,
-		"Memory in MiB",
-	)
+	flags.Uint64VarP(&initOptsFromFlags.Memory, memoryFlagName, "m", 4096, "Memory in MiB")
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	/* flags := initCmd.Flags()
+	cfg := registry.PodmanConfig()
 
 	flags.BoolVar(
 		&now,
@@ -177,7 +164,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		diskImage = args[0]
 	}
 
-	machineName := initOpts.Name
+	machineName := initOptsFromFlags.Name
 	if len(machineName) > maxMachineNameSize {
 		return fmt.Errorf("machine name %q must be %d characters or less", machineName, maxMachineNameSize)
 	}
@@ -193,7 +180,9 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.ImagePuller.SetSourceURI(diskImage)
 	initOpts.Name = machineName
 	initOpts.Image = diskImage
-	initOpts.DiskSize = 50
+	initOpts.CPUS = initOptsFromFlags.CPUS
+	initOpts.DiskSize = initOptsFromFlags.DiskSize
+	initOpts.Memory = initOptsFromFlags.Memory
 	initOpts.SSHIdentityPath = sshIdentityPath
 	initOpts.Username = username
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
