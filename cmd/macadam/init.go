@@ -4,6 +4,8 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
 
 	"github.com/containers/common/pkg/completion"
 	ldefine "github.com/containers/podman/v5/libpod/define"
@@ -13,6 +15,7 @@ import (
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	"github.com/crc-org/macadam/pkg/imagepullers"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
+	"github.com/crc-org/macadam/pkg/preflights"
 	"github.com/spf13/cobra"
 )
 
@@ -145,6 +148,11 @@ func init() {
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
+	if err := preflights.CheckGvproxyVersion(); err != nil {
+		slog.Error("invalid gvproxy binary", "error", err)
+		os.Exit(1)
+	}
+
 	provider, err := provider2.Get()
 	if err != nil {
 		return err
