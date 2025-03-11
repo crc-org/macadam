@@ -31,8 +31,6 @@ var (
 	// initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = "macadam"
 	// now                bool
-	sshIdentityPath string
-	username        string
 )
 
 // Flags which have a meaning when unspecified that differs from the flag default
@@ -60,11 +58,11 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(MachineNameFlagName, completion.AutocompleteDefault)
 
 	SSHIdentityPathFlagName := "ssh-identity-path"
-	flags.StringVar(&sshIdentityPath, SSHIdentityPathFlagName, "", "Path to the SSH private key to use to access the machine")
+	flags.StringVar(&initOptsFromFlags.SSHIdentityPath, SSHIdentityPathFlagName, "", "Path to the SSH private key to use to access the machine")
 	_ = initCmd.RegisterFlagCompletionFunc(SSHIdentityPathFlagName, completion.AutocompleteDefault)
 
 	UsernameFlagName := "username"
-	flags.StringVar(&username, UsernameFlagName, "", "Username used in image")
+	flags.StringVar(&initOptsFromFlags.Username, UsernameFlagName, "", "Username used in image")
 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
 	cpusFlagName := "cpus"
@@ -183,8 +181,8 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.CPUS = initOptsFromFlags.CPUS
 	initOpts.DiskSize = initOptsFromFlags.DiskSize
 	initOpts.Memory = initOptsFromFlags.Memory
-	initOpts.SSHIdentityPath = sshIdentityPath
-	initOpts.Username = username
+	initOpts.SSHIdentityPath = initOptsFromFlags.SSHIdentityPath
+	initOpts.Username = initOptsFromFlags.Username
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
 	/*
 		_, _, err = shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
