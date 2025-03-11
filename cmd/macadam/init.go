@@ -153,6 +153,11 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	if err := preflights.CheckVfkitVersion(); err != nil {
+		slog.Error("invalid vfkit binary", "error", err)
+		os.Exit(1)
+	}
+
 	provider, err := provider2.Get()
 	if err != nil {
 		return err
