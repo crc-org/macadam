@@ -18,12 +18,12 @@ import (
 
 var (
 	initCmd = &cobra.Command{
-		Use:               "init [options] [NAME]",
+		Use:               "init [options] [IMAGE]",
 		Short:             "Initialize a virtual machine",
 		Long:              "Initialize a virtual machine",
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `macadam init podman-machine-default`,
+		Example:           `macadam init image.raw`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
