@@ -147,14 +147,25 @@ func init() {
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process") */
 }
 
-func initMachine(cmd *cobra.Command, args []string) error {
+func runPreflights() error {
 	if err := preflights.CheckGvproxyVersion(); err != nil {
-		slog.Error("invalid gvproxy binary", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("invalid gvproxy binary: %w", err)
 	}
 
 	if err := preflights.CheckVfkitVersion(); err != nil {
-		slog.Error("invalid vfkit binary", "error", err)
+		return fmt.Errorf("invalid vfkit binary: %w", err)
+	}
+
+	if err := preflights.CheckSupportedProviders(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initMachine(cmd *cobra.Command, args []string) error {
+	if err := runPreflights(); err != nil {
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
