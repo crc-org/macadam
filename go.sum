@@ -68,12 +68,12 @@ github.com/containerd/typeurl/v2 v2.2.3 h1:yNA/94zxWdvYACdYO8zofhrTVuQY73fFU1y++
 github.com/containerd/typeurl/v2 v2.2.3/go.mod h1:95ljDnPfD3bAbDJRugOiShd/DlAAsxGtUBhJxIn7SCk=
 github.com/containers/buildah v1.39.1 h1:Z2nh9Tf/xw0JVDirC8u/qzDHE8ntqkz1khdwPsl4p9U=
 github.com/containers/buildah v1.39.1/go.mod h1:M5BDDzRezS8/FbvGdh35FHbltteaMRElNrZ0LgX6UP8=
-github.com/containers/common v0.62.1 h1:durvu7Kelb8PYgX7bwuAg/d5LKj2hs3cAaqcU7Vnqus=
-github.com/containers/common v0.62.1/go.mod h1:n9cEboBmY3AnTk1alkq4t7sLM4plwkDCiaWbsf67YxE=
+github.com/containers/common v0.62.2 h1:xO45OOoeq17EZMIDZoSyRqg7GXGcRHa9sXlrr75zH+U=
+github.com/containers/common v0.62.2/go.mod h1:veFiR9iq2j3CHXtB4YnPHuOkSRdhIQ3bAY8AFMP/5bE=
 github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be h1:/OVz49uNNL1dZsljxDn+scFbZv9GVYB5rzA8pMF5J4o=
 github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be/go.mod h1:Guh8d/SiuJ9jlnuIyUjcKkFKQ2qpLhNKPGD1jMoIt2Q=
-github.com/containers/image/v5 v5.34.1 h1:/m2bkFnuedTyNkzma8s7cFLjeefPIb4trjyafWhIlwM=
-github.com/containers/image/v5 v5.34.1/go.mod h1:/WnvUSEfdqC/ahMRd4YJDBLrpYWkGl018rB77iB3FDo=
+github.com/containers/image/v5 v5.34.2 h1:3r1etun4uJYq5197tcymUcI1h6+zyzKS9PtRtBlEKMI=
+github.com/containers/image/v5 v5.34.2/go.mod h1:MG++slvQSZVq5ejAcLdu4APGsKGMb0YHHnAo7X28fdE=
 github.com/containers/libhvee v0.10.0 h1:7VLv8keWZpHuGmWvyY4c1mVH5V1JYb1G78VC+8AlrM0=
 github.com/containers/libhvee v0.10.0/go.mod h1:at0h8lRcK5jCKfQgU/e6Io0Mw12F36zRLjXVOXRoDTM=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -82,8 +82,8 @@ github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpV
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.57.2-0.20250214174508-b6f6fb27264f h1:moo+peQbWNAZBI7+NTg+4RUOq1JuOllkfCs7ximmbg0=
-github.com/containers/storage v1.57.2-0.20250214174508-b6f6fb27264f/go.mod h1:egC90qMy0fTpGjkaHj667syy1Cbr3XPZEVX/qkUPrdM=
+github.com/containers/storage v1.57.2 h1:2roCtTyE9pzIaBDHibK72DTnYkPmwWaq5uXxZdaWK4U=
+github.com/containers/storage v1.57.2/go.mod h1:i/Hb4lu7YgFr9G0K6BMjqW0BLJO1sFsnWQwj2UoWCUM=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=

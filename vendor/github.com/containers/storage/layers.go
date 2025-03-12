@@ -26,6 +26,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/tarlog"
 	"github.com/containers/storage/pkg/truncindex"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -936,7 +937,7 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 				// Don't return the error immediately, because deleteInternal does not saveLayers();
 				// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
 				// deleted incomplete layers have their metadata correctly removed.
-				incompleteDeletionErrors = errors.Join(incompleteDeletionErrors,
+				incompleteDeletionErrors = multierror.Append(incompleteDeletionErrors,
 					fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
 			}
 			modifiedLocations |= layerLocation(layer)
@@ -2255,33 +2256,33 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 	// but they modify in-memory state.
 	fgetter, err := r.newFileGetter(to)
 	if err != nil {
-		errs := fmt.Errorf("creating file-getter: %w", err)
+		errs := multierror.Append(nil, fmt.Errorf("creating file-getter: %w", err))
 		if err := decompressor.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing decompressor: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing decompressor: %w", err))
 		}
 		if err := tsfile.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing tarstream headers: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing tarstream headers: %w", err))
 		}
-		return nil, errs
+		return nil, errs.ErrorOrNil()
 	}
 
 	tarstream := asm.NewOutputTarStream(fgetter, metadata)
 	rc := ioutils.NewReadCloserWrapper(tarstream, func() error {
-		var errs error
+		var errs *multierror.Error
 		if err := decompressor.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing decompressor: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing decompressor: %w", err))
 		}
 		if err := tsfile.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing tarstream headers: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing tarstream headers: %w", err))
 		}
 		if err := tarstream.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing reconstructed tarstream: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing reconstructed tarstream: %w", err))
 		}
 		if err := fgetter.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("closing file-getter: %w", err))
+			errs = multierror.Append(errs, fmt.Errorf("closing file-getter: %w", err))
 		}
 		if errs != nil {
-			return errs
+			return errs.ErrorOrNil()
 		}
 		return nil
 	})
