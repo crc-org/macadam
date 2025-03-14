@@ -1,16 +1,20 @@
 name: Build
+
 on:
+  workflow_dispatch:
   push:
   pull_request: {}
+
 jobs:
+
   build:
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         go:
         - oldstable
         - stable
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -35,6 +39,8 @@ jobs:
         with:
           name: amd64 linux binary
           path: "./bin/macadam-linux-amd64"
+
+
   test:
     needs: build
     strategy:
@@ -55,6 +61,8 @@ jobs:
           go-version: 'oldstable'
       - name: Test
         run: make test
+
+
   lint:
     needs: build
     runs-on: ubuntu-22.04
