@@ -361,7 +361,7 @@ github.com/containers/winquit/pkg/winquit/win32
 # github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/dbus
-# github.com/crc-org/crc/v2 v2.47.0
+# github.com/crc-org/crc/v2 v2.48.0
 ## explicit; go 1.22.0
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
@@ -596,18 +596,19 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.17.11
-## explicit; go 1.21
+# github.com/klauspost/compress v1.18.0
+## explicit; go 1.22
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/le
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.2.9
-## explicit; go 1.20
+# github.com/klauspost/cpuid/v2 v2.2.10
+## explicit; go 1.22
 github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.6
 ## explicit

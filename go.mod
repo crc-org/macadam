@@ -6,7 +6,7 @@ require (
 	github.com/containers/common v0.62.2
 	github.com/containers/podman/v5 v5.3.1
 	github.com/containers/storage v1.57.2
-	github.com/crc-org/crc/v2 v2.47.0
+	github.com/crc-org/crc/v2 v2.48.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
 	github.com/lima-vm/go-qcow2reader v0.6.0
 	github.com/spf13/cobra v1.9.1
@@ -94,8 +94,8 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
