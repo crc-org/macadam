@@ -6,8 +6,7 @@ VERSION_LDFLAGS=-X github.com/crc-org/macadam/pkg/cmdline.gitVersion=$(GIT_VERSI
 # github.com/containers/storage when container images are fetched.
 # These require external C libraries and their headers, it's simpler to disable
 # them for now. Hopefully podman-machine does not use these features.
-BUILDTAGS=containers_image_openpgp exclude_graphdriver_btrfs btrfs_noversion
-WINBUILDTAGS=remote ${BUILDTAGS}  
+BUILDTAGS=remote containers_image_openpgp exclude_graphdriver_btrfs btrfs_noversion
 
 DEFAULT_GOOS=$(shell go env GOOS)
 DEFAULT_GOARCH=$(shell go env GOARCH)
@@ -52,7 +51,7 @@ bin/macadam-linux-arm64: force-build
 bin/macadam-windows-amd64: GOOS=windows
 bin/macadam-windows-amd64: GOARCH=amd64
 bin/macadam-windows-amd64: force-build
-	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(WINBUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH).exe ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH).exe ./cmd/macadam
 
 .PHONY: lint
 lint: $(TOOLS_BINDIR)/golangci-lint

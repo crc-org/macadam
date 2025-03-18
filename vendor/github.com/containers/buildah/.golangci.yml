@@ -1,0 +1,16 @@
+---
+run:
+  build-tags:
+    - apparmor
+    - seccomp
+    - selinux
+  # Don't exceed number of threads available when running under CI
+  concurrency: 4
+linters:
+  enable:
+    - gofmt
+    - gofumpt
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
