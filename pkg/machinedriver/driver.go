@@ -165,7 +165,7 @@ func DefaultInitOpts(machineName string) *define.InitOptions {
 		initOpts.Image = defaultConfig.Machine.Image
 		initOpts.Volumes = defaultConfig.Machine.Volumes.Get()
 	*/
-	initOpts.Username = "core"
+	initOpts.Username = DefaultSSHUser
 	//initOpts.SSHIdentityPath = d.VMDriver.SSHConfig.IdentityPath
 	/* if d.VMDriver.SSHConfig.RemoteUsername != "" {
 		initOpts.Username = d.VMDriver.SSHConfig.RemoteUsername
