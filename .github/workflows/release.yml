@@ -1,0 +1,45 @@
+name: Release build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04 # explicitly use 22.04 for binary compatibility with older distros
+    timeout-minutes: 30
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: >-
+        WORKAROUND: Fetch tags that points to the revisions
+        checked-out(actions/checkout#1467)
+      run: |-
+        git fetch --tags --force
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Build
+      run: |
+        make cross
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macadam-binaries
+        path: bin/*
+
+    - name: Create release on github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+          gh release create --draft --generate-notes --verify-tag ${{github.ref_name}}
+          cd bin
+          sha256sum * >> sha256sums
+          gh release upload ${{github.ref_name}} *
