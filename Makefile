@@ -32,27 +32,27 @@ clean:
 bin/macadam-darwin-amd64: GOOS=darwin
 bin/macadam-darwin-amd64: GOARCH=amd64
 bin/macadam-darwin-amd64: force-build
-	go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-darwin-arm64: GOOS=darwin
 bin/macadam-darwin-arm64: GOARCH=arm64
 bin/macadam-darwin-arm64: force-build
-	go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-linux-amd64: GOOS=linux
 bin/macadam-linux-amd64: GOARCH=amd64
 bin/macadam-linux-amd64: force-build
-	go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-linux-arm64: GOOS=linux
 bin/macadam-linux-arm64: GOARCH=arm64
 bin/macadam-linux-arm64: force-build
-	go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-windows-amd64: GOOS=windows
 bin/macadam-windows-amd64: GOARCH=amd64
 bin/macadam-windows-amd64: force-build
-	go build -tags "$(WINBUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH).exe ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(WINBUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH).exe ./cmd/macadam
 
 .PHONY: lint
 lint: $(TOOLS_BINDIR)/golangci-lint
