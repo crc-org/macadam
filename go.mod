@@ -3,7 +3,7 @@ module github.com/crc-org/macadam
 go 1.23
 
 require (
-	github.com/containers/common v0.62.2
+	github.com/containers/common v0.62.3
 	github.com/containers/podman/v5 v5.3.1
 	github.com/containers/storage v1.57.2
 	github.com/crc-org/crc/v2 v2.48.0
@@ -43,7 +43,7 @@ require (
 	github.com/containers/buildah v1.39.1 // indirect
 	github.com/containers/conmon v2.0.20+incompatible // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.4-0.20250227160003-36bc62c4d5be // indirect
-	github.com/containers/image/v5 v5.34.2 // indirect
+	github.com/containers/image/v5 v5.34.3 // indirect
 	github.com/containers/libhvee v0.10.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/luksy v0.0.0-20250106202729-a3a812db5b72 // indirect
