@@ -30,8 +30,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOptsFromFlags = define.InitOptions{}
-	// initOptionalFlags  = InitOptionalFlags{}
+	initOptsFromFlags  = define.InitOptions{}
+	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = "macadam"
 	// now                bool
 )
@@ -75,6 +75,10 @@ func init() {
 	memoryFlagName := "memory"
 	flags.Uint64VarP(&initOptsFromFlags.Memory, memoryFlagName, "m", 4096, "Memory in MiB")
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	userModeNetFlagName := "user-mode-networking"
+	flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, true,
+		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
 
 	/* flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
@@ -136,16 +140,15 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
 
 	rootfulFlagName := "rootful"
-	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution") */
 
-	userModeNetFlagName := "user-mode-networking"
-	flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, false,
-		"Whether this machine should use user-mode networking, routing traffic through a host user-space process") */
 }
 
 func runPreflights() error {
-	if err := preflights.CheckGvproxyVersion(); err != nil {
-		return fmt.Errorf("invalid gvproxy binary: %w", err)
+	if initOptionalFlags.UserModeNetworking {
+		if err := preflights.CheckGvproxyVersion(); err != nil {
+			return fmt.Errorf("invalid gvproxy binary: %w", err)
+		}
 	}
 
 	if err := preflights.CheckVfkitVersion(); err != nil {
@@ -204,6 +207,11 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.SSHIdentityPath = initOptsFromFlags.SSHIdentityPath
 	initOpts.Username = initOptsFromFlags.Username
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
+	initOpts.UserModeNetworking = nil
+
+	if initOptionalFlags.UserModeNetworking {
+		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
+	}
 	/*
 		_, _, err = shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
 		if err == nil {
