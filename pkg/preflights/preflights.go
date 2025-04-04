@@ -49,8 +49,8 @@ func CheckSupportedProviders() error {
 	}
 	vmType := provider.VMType()
 	switch vmType {
-	case define.HyperVVirt, define.LibKrun:
-		return fmt.Errorf("%s VM provider is unsupported, only wsl2 on Windows, vfkit on macOS and qemu on linux are supported", vmType.String())
+	case define.LibKrun:
+		return fmt.Errorf("%s VM provider is unsupported, only wsl2, hyperv on Windows, vfkit on macOS and qemu on linux are supported", vmType.String())
 	default:
 		return nil
 	}
