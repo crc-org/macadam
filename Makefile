@@ -21,7 +21,9 @@ build: bin/macadam-$(DEFAULT_GOOS)-$(DEFAULT_GOARCH)
 TOOLS_DIR := tools
 include tools/tools.mk
 
-cross: bin/macadam-darwin-amd64 bin/macadam-darwin-arm64 bin/macadam-linux-amd64 bin/macadam-linux-arm64 bin/macadam-windows-amd64
+cross-non-darwin: bin/macadam-linux-amd64 bin/macadam-linux-arm64 bin/macadam-windows-amd64
+
+cross: cross-non-darwin bin/macadam-darwin-amd64 bin/macadam-darwin-arm64
 
 check: lint vendorcheck test
 
