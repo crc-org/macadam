@@ -154,7 +154,6 @@ func (o *OCIArtifactDisk) get() (func(), error) {
 		return nil, err
 	}
 
-	logrus.Warnf("OCIArtifactDisk: GetPath(): %s", cachedImagePath.GetPath())
 	// check if we have the latest and greatest disk image
 	if _, err = os.Stat(cachedImagePath.GetPath()); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {

@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/cloudinit"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/qemu/command"
@@ -57,19 +58,29 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 
-	ignitionFile, err := mc.IgnitionFile()
-	if err != nil {
-		return err
-	}
-
 	q.QEMUPidPath = mc.QEMUHypervisor.QEMUPidPath
 
 	q.Command = command.NewQemuBuilder(qemuBinary, q.addArchOptions(nil))
 	q.Command.SetBootableImage(mc.ImagePath.GetPath())
 	q.Command.SetMemory(mc.Resources.Memory)
 	q.Command.SetCPUs(mc.Resources.CPUs)
-	q.Command.SetIgnitionFile(*ignitionFile)
 	q.Command.SetQmpMonitor(mc.QEMUHypervisor.QMPMonitor)
+
+	if mc.CloudInit {
+		cloudInitISO, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return err
+		}
+		q.Command.SetBootableImage(cloudInitISO)
+	} else {
+		ignitionFile, err := mc.IgnitionFile()
+		if err != nil {
+			return err
+		}
+
+		q.Command.SetIgnitionFile(*ignitionFile)
+	}
+
 	gvProxySock, err := mc.GVProxySocket()
 	if err != nil {
 		return err
@@ -187,8 +198,6 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmdLine.SetDisplay("none")
 	}
-
-	logrus.Warnf("qemu cmd: %v", cmdLine)
 
 	stderrBuf := &bytes.Buffer{}
 

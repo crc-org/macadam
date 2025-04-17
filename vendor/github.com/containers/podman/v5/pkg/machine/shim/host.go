@@ -144,7 +144,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		return err
 	}
 	mc.ImagePath = imagePath
-	logrus.Infof("local image path: %s", imagePath)
 
 	// TODO The following stanzas should be re-written in a different place.  It should have a custom
 	// parser for our image pulling.  It would be nice if init just got an error and mydisk back.
@@ -273,7 +272,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		callbackFuncs.Add(cleanup)
 	}
 
-	logrus.Warn("CreateVM")
 	err = mp.CreateVM(createOpts, mc, &ignBuilder)
 	if err != nil {
 		return err
