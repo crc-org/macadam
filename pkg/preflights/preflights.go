@@ -53,7 +53,7 @@ func checkVfkitVersion() error {
 		return nil
 	}
 	if err := checkBinaryArg("vfkit", "--cloud-init"); err != nil {
-		return fmt.Errorf("%w, please update to vfkit from git main", err)
+		return fmt.Errorf("%w, please update to vfkit v0.6.1 or newer", err)
 	}
 	return nil
 }
