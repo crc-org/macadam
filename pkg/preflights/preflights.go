@@ -13,9 +13,25 @@ import (
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 )
 
+func RunPreflights() error {
+	if err := checkGvproxyVersion(); err != nil {
+		return fmt.Errorf("invalid gvproxy binary: %w", err)
+	}
+
+	if err := checkVfkitVersion(); err != nil {
+		return fmt.Errorf("invalid vfkit binary: %w", err)
+	}
+
+	if err := checkSupportedProviders(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // macadam/podman needs a gvproxy version which supports the --services
 // argument
-func CheckGvproxyVersion() error {
+func checkGvproxyVersion() error {
 	provider, err := provider2.Get()
 	if err != nil {
 		return err
@@ -32,7 +48,7 @@ func CheckGvproxyVersion() error {
 
 // macadam/podman needs a vfkit binary which supports the --cloud-init
 // argument to inject ssh keys in RHEL cloud images
-func CheckVfkitVersion() error {
+func checkVfkitVersion() error {
 	if runtime.GOOS != "darwin" {
 		return nil
 	}
@@ -42,7 +58,7 @@ func CheckVfkitVersion() error {
 	return nil
 }
 
-func CheckSupportedProviders() error {
+func checkSupportedProviders() error {
 	provider, err := provider2.Get()
 	if err != nil {
 		return err
