@@ -308,7 +308,7 @@ func Start(vmConfig *vmconfigs.MachineConfig, vmProvider vmconfigs.VMProvider) e
 		NoInfo: !vmConfig.Capabilities.GetForwardSockets(),
 		Quiet:  false,
 	}
-	slog.Info(fmt.Sprintf("SSH config: %v", vmConfig.SSH))
+	slog.Debug("SSH config", "port", vmConfig.SSH.Port, "username", vmConfig.SSH.RemoteUsername, "identity-path", vmConfig.SSH.IdentityPath)
 
 	if err := shim.Start(vmConfig, vmProvider, dirs, startOpts); err != nil {
 		return err
