@@ -20,6 +20,7 @@ version=$(cat "${BASEDIR}/VERSION")
 function build_fat(){
     echo "Creating universal binary"
     lipo -create -output "${binDir}/macadam" "${binDir}/macadam-darwin-arm64" "${binDir}/macadam-darwin-amd64"
+    rm "${binDir}/macadam-darwin-arm64" "${binDir}/macadam-darwin-amd64"
 }
 
 function sign() {
