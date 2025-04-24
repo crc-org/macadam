@@ -39,8 +39,8 @@ jobs:
         if: matrix.go == 'stable'
         uses: actions/upload-artifact@v4
         with:
-          name: amd64 linux binary
-          path: "./bin/macadam-linux-amd64"
+          name: macadam binaries
+          path: "./bin/*"
 
 
   test:
