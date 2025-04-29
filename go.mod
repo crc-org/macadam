@@ -45,7 +45,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.2.3 // indirect
 	github.com/containernetworking/plugins v1.5.1 // indirect
-	github.com/containers/buildah v1.39.1 // indirect
+	github.com/containers/buildah v1.39.4 // indirect
 	github.com/containers/conmon v2.0.20+incompatible // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.5 // indirect
 	github.com/containers/image/v5 v5.34.3 // indirect
@@ -219,6 +219,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250424130403-85a1f4d420f1
+replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250429093108-f5cb7f8c7a1d
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078

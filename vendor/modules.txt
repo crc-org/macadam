@@ -148,7 +148,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.39.1
+# github.com/containers/buildah v1.39.4
 ## explicit; go 1.22.8
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -349,7 +349,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250424130403-85a1f4d420f1
+# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250429093108-f5cb7f8c7a1d
 ## explicit; go 1.22.8
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
@@ -1451,5 +1451,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250424130403-85a1f4d420f1
+# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250429093108-f5cb7f8c7a1d
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078

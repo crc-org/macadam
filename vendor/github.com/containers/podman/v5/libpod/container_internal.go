@@ -153,6 +153,10 @@ func (c *Container) oomFilePath() (string, error) {
 	return c.ociRuntime.OOMFilePath(c)
 }
 
+func (c *Container) persistDirPath() (string, error) {
+	return c.ociRuntime.PersistDirectoryPath(c)
+}
+
 // Wait for the container's exit file to appear.
 // When it does, update our state based on it.
 func (c *Container) waitForExitFileAndSync() error {
@@ -766,13 +770,15 @@ func (c *Container) removeConmonFiles() error {
 		return fmt.Errorf("removing container %s exit file: %w", c.ID(), err)
 	}
 
-	// Remove the oom file
-	oomFile, err := c.oomFilePath()
+	// Remove the persist directory
+	persistDir, err := c.persistDirPath()
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(oomFile); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("removing container %s oom file: %w", c.ID(), err)
+	if persistDir != "" {
+		if err := os.RemoveAll(persistDir); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("removing container %s persist directory: %w", c.ID(), err)
+		}
 	}
 
 	return nil
@@ -2839,11 +2845,11 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 	}
 
 	if globalOptions.HealthMaxLogCount != nil {
-		c.config.HealthMaxLogCount = *globalOptions.HealthMaxLogCount
+		c.config.HealthMaxLogCount = globalOptions.HealthMaxLogCount
 	}
 
 	if globalOptions.HealthMaxLogSize != nil {
-		c.config.HealthMaxLogSize = *globalOptions.HealthMaxLogSize
+		c.config.HealthMaxLogSize = globalOptions.HealthMaxLogSize
 	}
 
 	if globalOptions.HealthLogDestination != nil {
@@ -2851,7 +2857,7 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 		if err != nil {
 			return err
 		}
-		c.config.HealthLogDestination = dest
+		c.config.HealthLogDestination = &dest
 	}
 
 	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
