@@ -18,6 +18,7 @@ package macadam
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -518,6 +519,10 @@ func (d *Driver) RemoveWithOptions(opts machine.RemoveOptions) error {
 	}
 
 	if err := shim.Remove(d.vmConfig, d.vmProvider, dirs, opts); err != nil {
+		/* don’t print anything if the user cancelled the removal */
+		if errors.Is(err, shim.ErrRemoveUserCancelled) {
+			return nil
+		}
 		return err
 	}
 	//newMachineEvent(events.Remove, events.Event{Name: vmName})
