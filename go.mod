@@ -219,6 +219,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250429093108-f5cb7f8c7a1d
+replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250507090918-181a5233cf8e
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
