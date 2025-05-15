@@ -208,11 +208,6 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 
 	cmd.Args = append(cmd.Args, endpointArgs...)
 
-	firstBoot, err := mc.IsFirstBoot()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		debugDevArgs, err := GetDebugDevicesCMDArgs()
 		if err != nil {
@@ -222,7 +217,7 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
 	}
 
-	if firstBoot {
+	if mc.IsFirstBoot() {
 		var firstBootCli []string
 		if mc.CloudInit {
 			firstBootCli, err = getFirstBootAppleVMCloudInit(mc)
@@ -277,7 +272,7 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 			return nil, nil, err
 		}
 		for _, arg := range cmd.Args {
-			_, err = f.WriteString(fmt.Sprintf("%q ", arg))
+			_, err = fmt.Fprintf(f, "%q ", arg)
 			if err != nil {
 				return nil, nil, err
 			}

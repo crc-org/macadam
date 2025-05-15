@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/strongunits"
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
@@ -323,12 +321,12 @@ func checkAndInstallWSL(reExec bool) (bool, error) {
 
 	admin := HasAdminRights()
 
-	if !IsWSLFeatureEnabled() {
+	if !wutil.IsWSLFeatureEnabled() {
 		return false, attemptFeatureInstall(reExec, admin)
 	}
 
 	skip := false
-	if reExec && !admin {
+	if !reExec && !admin {
 		fmt.Println("Launching WSL Kernel Install...")
 		if err := launchElevate(wslInstallKernel); err != nil {
 			return false, err
@@ -369,11 +367,11 @@ func attemptFeatureInstall(reExec, admin bool) error {
 	message += "NOTE: A system reboot will be required as part of this process. " +
 		"If you prefer, you may abort now, and perform a manual installation using the \"wsl --install\" command."
 
-	if reExec && MessageBox(message, "Podman Machine", false) != 1 {
+	if !reExec && MessageBox(message, "Podman Machine", false) != 1 {
 		return errors.New("the WSL installation aborted")
 	}
 
-	if reExec && !admin {
+	if !reExec && !admin {
 		return launchElevate("install the Windows WSL Features")
 	}
 
@@ -552,11 +550,6 @@ func wslPipe(input string, dist string, arg ...string) error {
 	return pipeCmdPassThrough(wutil.FindWSL(), input, newArgs...)
 }
 
-//nolint:unused
-func wslCreateKeys(identityPath string, dist string) (string, error) {
-	return machine.CreateSSHKeysPrefix(identityPath, true, true, wutil.FindWSL(), "-u", "root", "-d", dist)
-}
-
 func runCmdPassThrough(name string, arg ...string) error {
 	logrus.Debugf("Running command: %s %v", name, arg)
 	cmd := exec.Command(name, arg...)
@@ -614,22 +607,6 @@ func setupWslProxyEnv() (hasProxy bool) {
 		os.Setenv("WSLENV", current)
 	}
 	return
-}
-
-//nolint:unused
-func obtainGlobalConfigLock() (*fileLock, error) {
-	lockDir, err := env.GetGlobalDataDir()
-	if err != nil {
-		return nil, err
-	}
-
-	// Lock file needs to be above all backends
-	// TODO: This should be changed to a common.Config lock mechanism when available
-	return lockFile(filepath.Join(lockDir, "podman-config.lck"))
-}
-
-func IsWSLFeatureEnabled() bool {
-	return wutil.SilentExec(wutil.FindWSL(), "--set-default-version", "2") == nil
 }
 
 func isWSLRunning(dist string) (bool, error) {
@@ -748,100 +725,4 @@ func isRunning(name string) (bool, error) {
 	}
 
 	return sysd, err
-}
-
-//nolint:unused
-func getDiskSize(name string) strongunits.GiB {
-	vmDataDir, err := env.GetDataDir(vmtype)
-	if err != nil {
-		return 0
-	}
-	distDir := filepath.Join(vmDataDir, "wsldist")
-	disk := filepath.Join(distDir, name, "ext4.vhdx")
-	info, err := os.Stat(disk)
-	if err != nil {
-		return 0
-	}
-	return strongunits.ToGiB(strongunits.B(info.Size()))
-}
-
-//nolint:unused
-func getCPUs(name string) (uint64, error) {
-	dist := env.WithToolPrefix(name)
-	if run, _ := isWSLRunning(dist); !run {
-		return 0, nil
-	}
-	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "nproc")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	if err = cmd.Start(); err != nil {
-		return 0, err
-	}
-	scanner := bufio.NewScanner(out)
-	var result string
-	for scanner.Scan() {
-		result = scanner.Text()
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(strings.TrimSpace(stderr.String())))
-	}
-
-	ret, err := strconv.Atoi(result)
-	return uint64(ret), err
-}
-
-//nolint:unused
-func getMem(name string) (strongunits.MiB, error) {
-	dist := env.WithToolPrefix(name)
-	if run, _ := isWSLRunning(dist); !run {
-		return 0, nil
-	}
-	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "cat", "/proc/meminfo")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	if err = cmd.Start(); err != nil {
-		return 0, err
-	}
-	scanner := bufio.NewScanner(out)
-	var (
-		total, available uint64
-		t, a             int
-	)
-	for scanner.Scan() {
-		// fields are in kB so div to mb
-		fields := strings.Fields(scanner.Text())
-		if strings.HasPrefix(fields[0], "MemTotal") && len(fields) >= 2 {
-			t, err = strconv.Atoi(fields[1])
-			total = uint64(t) / 1024
-		} else if strings.HasPrefix(fields[0], "MemAvailable") && len(fields) >= 2 {
-			a, err = strconv.Atoi(fields[1])
-			available = uint64(a) / 1024
-		}
-		if err != nil {
-			break
-		}
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(stderr.String()))
-	}
-
-	return strongunits.MiB(total - available), err
-}
-
-//nolint:unused
-func getResources(mc *vmconfigs.MachineConfig) (resources vmconfigs.ResourceConfig) {
-	resources.CPUs, _ = getCPUs(mc.Name)
-	resources.Memory, _ = getMem(mc.Name)
-	resources.DiskSize = getDiskSize(mc.Name)
-	return
 }

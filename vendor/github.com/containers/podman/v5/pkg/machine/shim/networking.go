@@ -68,8 +68,6 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 		cmd.AddForwardUser(forwardUser)
 		cmd.AddForwardIdentity(mc.SSH.IdentityPath)
 	}
-	serviceEndpoint := filepath.Join(runDir.GetPath(), "gv.sock")
-	cmd.AddServiceEndpoint(fmt.Sprintf("unix://%s", serviceEndpoint))
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Debug = true

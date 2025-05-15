@@ -182,12 +182,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	firstBoot, err := mc.IsFirstBoot()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if firstBoot {
+	if mc.IsFirstBoot() {
 		// Add ignition entries to windows registry
 		// for first boot only
 		if err := readAndSplitIgnition(mc, vm); err != nil {
@@ -425,10 +420,11 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 	fsCmd := exec.Command(executable, p9ServerArgs...)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		err = logCommandToFile(fsCmd, "podman-machine-server9.log")
+		log, err := logCommandToFile(fsCmd, "podman-machine-server9.log")
 		if err != nil {
 			return err
 		}
+		defer log.Close()
 	}
 
 	err = fsCmd.Start()
@@ -506,23 +502,22 @@ func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
 	return nil
 }
 
-func logCommandToFile(c *exec.Cmd, filename string) error {
+func logCommandToFile(c *exec.Cmd, filename string) (*os.File, error) {
 	dir, err := env.GetDataDir(define.HyperVVirt)
 	if err != nil {
-		return fmt.Errorf("obtain machine dir: %w", err)
+		return nil, fmt.Errorf("obtain machine dir: %w", err)
 	}
 	path := filepath.Join(dir, filename)
 	logrus.Infof("Going to log to %s", path)
 	log, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("create log file: %w", err)
+		return nil, fmt.Errorf("create log file: %w", err)
 	}
-	defer log.Close()
 
 	c.Stdout = log
 	c.Stderr = log
 
-	return nil
+	return log, nil
 }
 
 const hyperVVsockNMConnection = `
