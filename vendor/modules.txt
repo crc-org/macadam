@@ -222,6 +222,8 @@ github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/netns
 github.com/containers/common/pkg/parse
 github.com/containers/common/pkg/password
+github.com/containers/common/pkg/report
+github.com/containers/common/pkg/report/camelcase
 github.com/containers/common/pkg/resize
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/rootlessport

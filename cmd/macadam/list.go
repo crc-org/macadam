@@ -2,16 +2,20 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/crc-org/machine/libmachine/state"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
 
@@ -74,14 +78,49 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	machineReporter := toMachineFormat(listDrivers)
-	b, err := json.MarshalIndent(machineReporter, "", "    ")
+	if report.IsJSON(listFlag.format) {
+		machineReporter := toMachineFormat(listDrivers)
+		b, err := json.MarshalIndent(machineReporter, "", "    ")
+		if err != nil {
+			return err
+		}
+		os.Stdout.Write(b)
+
+		return nil
+	}
+	machineReporter := toHumanFormat(listDrivers)
+	return outputTemplate(cmd, machineReporter)
+}
+
+func outputTemplate(cmd *cobra.Command, responses []ListReporter) error {
+	headers := report.Headers(entities.ListReporter{}, map[string]string{
+		"LastUp":   "LAST UP",
+		"VmType":   "VM TYPE",
+		"CPUs":     "CPUS",
+		"Memory":   "MEMORY",
+		"DiskSize": "DISK SIZE",
+	})
+
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
+	var err error
+	switch {
+	case cmd.Flag("format").Changed:
+		rpt, err = rpt.Parse(report.OriginUser, listFlag.format)
+	default:
+		rpt, err = rpt.Parse(report.OriginPodman, listFlag.format)
+	}
 	if err != nil {
 		return err
 	}
-	os.Stdout.Write(b)
-	return nil
 
+	if rpt.RenderHeaders {
+		if err := rpt.Execute(headers); err != nil {
+			return fmt.Errorf("failed to write report column headers: %w", err)
+		}
+	}
+	return rpt.Execute(responses)
 }
 
 func strTime(t time.Time) string {
@@ -126,4 +165,44 @@ func toMachineFormat(drivers []*macadam.Driver) []ListReporter {
 	}
 
 	return machineResponses
+}
+
+func toHumanFormat(drivers []*macadam.Driver) []ListReporter {
+	humanResponses := []ListReporter{}
+
+	for _, d := range drivers {
+		vm := d.GetVmConfig()
+
+		vmState, err := d.GetState()
+		if err != nil {
+			return humanResponses
+		}
+
+		response := new(ListReporter)
+		response.Name = vm.Name
+		response.LastUp = strTime(vm.LastUp)
+		switch {
+		case vm.Starting:
+			response.LastUp = "Currently starting"
+			response.Starting = true
+		case vmState == state.Running:
+			response.LastUp = "Currently running"
+			response.Running = true
+		case vm.LastUp.IsZero():
+			response.LastUp = "Never"
+		default:
+			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
+		}
+		response.Created = units.HumanDuration(time.Since(vm.Created)) + " ago"
+		response.CPUs = vm.Resources.CPUs
+		response.Memory = units.BytesSize(float64(vm.Resources.Memory.ToBytes()))
+		response.DiskSize = units.BytesSize(float64(vm.Resources.DiskSize.ToBytes()))
+		response.Port = vm.SSH.Port
+		response.RemoteUsername = vm.SSH.RemoteUsername
+		response.IdentityPath = vm.SSH.IdentityPath
+		response.VMType = d.GetVMType().String()
+
+		humanResponses = append(humanResponses, *response)
+	}
+	return humanResponses
 }
