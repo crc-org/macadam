@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/crc-org/macadam/cmd/macadam/common"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	"github.com/crc-org/machine/libmachine/state"
@@ -66,6 +67,8 @@ func init() {
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n{{end -}}", "Format volume output using JSON or a Go template")
+	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(ListReporter{}))
+
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
 }
