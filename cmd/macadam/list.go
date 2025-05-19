@@ -37,7 +37,9 @@ var (
 )
 
 type listFlagType struct {
-	format string
+	format    string
+	noHeading bool
+	quiet     bool
 }
 
 type ListReporter struct {
@@ -64,6 +66,8 @@ func init() {
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n{{end -}}", "Format volume output using JSON or a Go template")
+	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print headers")
+	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -108,6 +112,8 @@ func outputTemplate(cmd *cobra.Command, responses []ListReporter) error {
 	switch {
 	case cmd.Flag("format").Changed:
 		rpt, err = rpt.Parse(report.OriginUser, listFlag.format)
+	case listFlag.quiet:
+		rpt, err = rpt.Parse(report.OriginUser, "{{.Name}}\n")
 	default:
 		rpt, err = rpt.Parse(report.OriginPodman, listFlag.format)
 	}
@@ -115,7 +121,7 @@ func outputTemplate(cmd *cobra.Command, responses []ListReporter) error {
 		return err
 	}
 
-	if rpt.RenderHeaders {
+	if rpt.RenderHeaders && !listFlag.noHeading {
 		if err := rpt.Execute(headers); err != nil {
 			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
