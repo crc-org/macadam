@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -84,6 +85,21 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	// Sort by last run
+	sort.Slice(listDrivers, func(i, j int) bool {
+		lhs_vm := listDrivers[i].GetVmConfig()
+		rhs_vm := listDrivers[j].GetVmConfig()
+		return lhs_vm.LastUp.After(rhs_vm.LastUp)
+	})
+	// Bring currently running machines to top
+	sort.Slice(listDrivers, func(i, j int) bool {
+		vmState, err := listDrivers[i].GetState()
+		if err != nil {
+			return false
+		}
+		return vmState == state.Running
+	})
 
 	if report.IsJSON(listFlag.format) {
 		machineReporter := toMachineFormat(listDrivers)
