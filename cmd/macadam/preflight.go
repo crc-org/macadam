@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/crc-org/macadam/cmd/macadam/registry"
+	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/crc-org/macadam/pkg/preflights"
 	"github.com/spf13/cobra"
 )
@@ -24,5 +25,9 @@ func init() {
 }
 
 func preflight(_ *cobra.Command, args []string) error {
-	return preflights.RunPreflights()
+	vmProvider, err := provider2.GetProviderOrDefault(provider)
+	if err != nil {
+		return err
+	}
+	return preflights.RunPreflights(vmProvider)
 }

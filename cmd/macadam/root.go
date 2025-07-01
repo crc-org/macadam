@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/crc-org/macadam/cmd/macadam/common"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	"github.com/crc-org/macadam/pkg/cmdline"
 	"github.com/crc-org/macadam/pkg/env"
+	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -61,6 +63,7 @@ var (
 
 	defaultLogLevel = "warn"
 	logLevel        = defaultLogLevel
+	provider        = ""
 	// dockerConfig    = ""
 	// debug           bool
 
@@ -87,6 +90,10 @@ func init() {
 	pFlags.StringVar(&logLevel, logLevelFlagName, logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
 	_ = rootCmd.RegisterFlagCompletionFunc(logLevelFlagName, common.AutocompleteLogLevel)
 
+	providerFlagName := "provider"
+	pFlags.StringVar(&provider, providerFlagName, "", fmt.Sprintf("Name for the provider (%s). Default value: %s", strings.Join(provider2.GetProviders(), ", "), provider2.GetDefaultProvider()))
+	_ = initCmd.RegisterFlagCompletionFunc(providerFlagName, completion.AutocompleteNone)
+
 	rootCmd.SetUsageTemplate(usageTemplate)
 }
 
@@ -102,7 +109,12 @@ func Execute() {
 }
 
 func machinePreRunE(c *cobra.Command, args []string) error {
-	return env.SetupEnvironment()
+	vmProvider, err := provider2.GetProviderOrDefault(provider)
+	if err != nil {
+		return err
+	}
+
+	return env.SetupEnvironment(vmProvider)
 }
 
 func loggingHook() {

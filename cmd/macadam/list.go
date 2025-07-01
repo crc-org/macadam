@@ -11,11 +11,11 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/macadam/cmd/macadam/common"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
+	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/crc-org/machine/libmachine/state"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
@@ -75,11 +75,11 @@ func init() {
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	provider, err := provider2.Get()
+	vmProvider, err := provider2.GetProviderOrDefault(provider)
 	if err != nil {
 		return err
 	}
-	providers := []vmconfigs.VMProvider{provider}
+	providers := []vmconfigs.VMProvider{vmProvider}
 
 	listDrivers, err := macadam.List(providers)
 	if err != nil {

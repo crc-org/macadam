@@ -86,13 +86,8 @@ func NewDriver(hostName, storePath string) *Driver {
 	}
 }
 
-// this func should return the driver by using the machineName
-func GetDriverByMachineName(machineName string) (*Driver, error) {
-	provider, err := provider2.Get()
-	if err != nil {
-		return nil, err
-	}
-
+// this func should return the driver by using the provider and machineName
+func GetDriverByProviderAndMachineName(provider vmconfigs.VMProvider, machineName string) (*Driver, error) {
 	dirs, err := env.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return nil, err
@@ -194,13 +189,6 @@ func (d *Driver) initOpts() *define.InitOptions {
 }
 
 func (d *Driver) Reload() error {
-	if d.vmProvider == nil {
-		provider, err := provider2.Get()
-		if err != nil {
-			return err
-		}
-		d.vmProvider = provider
-	}
 	vmConfig, _, err := shim.VMExists(d.MachineName, []vmconfigs.VMProvider{d.vmProvider})
 	if err != nil {
 		return err
@@ -645,7 +633,7 @@ func List(vmstubbers []vmconfigs.VMProvider) ([]*Driver, error) {
 			return nil, err
 		}
 		for name := range mcs {
-			driver, err := GetDriverByMachineName(name)
+			driver, err := GetDriverByProviderAndMachineName(s, name)
 			if err != nil {
 				return nil, err
 			}

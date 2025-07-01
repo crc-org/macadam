@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/storage/pkg/homedir"
 )
 
 const connectionsFile = "macadam-connections.json"
 
-func SetupEnvironment() error {
+func SetupEnvironment(provider vmconfigs.VMProvider) error {
 	path, err := homedir.GetConfigHome()
 	if err != nil {
 		return err
@@ -35,11 +35,6 @@ func SetupEnvironment() error {
 	// set the directory to be used when calculating runtime path
 	// run -> <runHome>/macadam (runHome changes based on the OS used e.g. runHome == /run)
 	err = os.Setenv("PODMAN_RUNTIME_DIR", "macadam")
-	if err != nil {
-		return err
-	}
-
-	provider, err := provider2.Get()
 	if err != nil {
 		return err
 	}

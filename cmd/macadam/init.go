@@ -10,11 +10,11 @@ import (
 	"github.com/containers/common/pkg/completion"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	"github.com/crc-org/macadam/pkg/imagepullers"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
+	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/crc-org/macadam/pkg/preflights"
 	"github.com/spf13/cobra"
 )
@@ -144,14 +144,14 @@ func init() {
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
-	if err := preflights.RunPreflights(); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-
-	provider, err := provider2.Get()
+	vmProvider, err := provider2.GetProviderOrDefault(provider)
 	if err != nil {
 		return err
+	}
+
+	if err := preflights.RunPreflights(vmProvider); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	/*
@@ -175,7 +175,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid name %q: %w", machineName, ldefine.RegexError)
 	}
 
-	puller := imagepullers.NewNoopImagePuller(machineName, provider.VMType())
+	puller := imagepullers.NewNoopImagePuller(machineName, vmProvider.VMType())
 
 	initOpts := macadam.DefaultInitOpts(machineName)
 	initOpts.ImagePuller = puller
@@ -198,5 +198,5 @@ func initMachine(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("machine %q already exists", machineName)
 		}
 	*/
-	return shim.Init(*initOpts, provider)
+	return shim.Init(*initOpts, vmProvider)
 }

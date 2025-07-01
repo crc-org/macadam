@@ -4,6 +4,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
+	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +39,11 @@ func rm(_ *cobra.Command, args []string) error {
 		machineName = args[0]
 	}
 
-	driver, err := macadam.GetDriverByMachineName(machineName)
+	vmProvider, err := provider2.GetProviderOrDefault(provider)
+	if err != nil {
+		return err
+	}
+	driver, err := macadam.GetDriverByProviderAndMachineName(vmProvider, machineName)
 	if err != nil {
 		return err
 	}

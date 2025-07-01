@@ -10,11 +10,11 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
-func RunPreflights() error {
-	if err := checkGvproxyVersion(); err != nil {
+func RunPreflights(provider vmconfigs.VMProvider) error {
+	if err := checkGvproxyVersion(provider); err != nil {
 		return fmt.Errorf("invalid gvproxy binary: %w", err)
 	}
 
@@ -22,7 +22,7 @@ func RunPreflights() error {
 		return fmt.Errorf("invalid vfkit binary: %w", err)
 	}
 
-	if err := checkSupportedProviders(); err != nil {
+	if err := checkSupportedProviders(provider); err != nil {
 		return err
 	}
 
@@ -31,12 +31,7 @@ func RunPreflights() error {
 
 // macadam/podman needs a gvproxy version which supports the --services
 // argument
-func checkGvproxyVersion() error {
-	provider, err := provider2.Get()
-	if err != nil {
-		return err
-	}
-
+func checkGvproxyVersion(provider vmconfigs.VMProvider) error {
 	if provider.VMType() == define.WSLVirt {
 		return nil
 	}
@@ -58,11 +53,7 @@ func checkVfkitVersion() error {
 	return nil
 }
 
-func checkSupportedProviders() error {
-	provider, err := provider2.Get()
-	if err != nil {
-		return err
-	}
+func checkSupportedProviders(provider vmconfigs.VMProvider) error {
 	vmType := provider.VMType()
 	switch vmType {
 	case define.HyperVVirt, define.LibKrun:
