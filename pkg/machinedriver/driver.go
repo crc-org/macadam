@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
-	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/machine/libmachine/drivers"
@@ -59,31 +58,6 @@ type Driver struct {
 
 	vmConfig   *vmconfigs.MachineConfig
 	vmProvider vmconfigs.VMProvider
-}
-
-func NewDriver(hostName, storePath string) *Driver {
-	// checks that macdriver.Driver implements the libmachine.Driver interface
-	var _ drivers.Driver = &Driver{}
-
-	provider, err := provider2.Get()
-	if err != nil {
-		return nil
-	}
-	return &Driver{
-		VMDriver: &drivers.VMDriver{
-			BaseDriver: &drivers.BaseDriver{
-				MachineName: hostName,
-				StorePath:   storePath,
-			},
-			CPU:    DefaultCPUs,
-			Memory: DefaultMemory,
-		},
-		// needed when loading a VM which was created before
-		// DaemonVsockPort was introduced
-		DaemonVsockPort: DaemonVsockPort,
-
-		vmProvider: provider,
-	}
 }
 
 // this func should return the driver by using the provider and machineName
