@@ -1,8 +1,11 @@
+version: "2"
 run:
   build-tags:
     - remote
     - containers_image_openpgp
     - exclude_graphdriver_btrfs
     - btrfs_noversion
-
-  timeout: 10m
+linters:
+  exclusions:
+    presets:
+      - std-error-handling
