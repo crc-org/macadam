@@ -154,9 +154,9 @@ func DefaultInitOpts(machineName string) *define.InitOptions {
 
 func (d *Driver) initOpts() *define.InitOptions {
 	initOpts := DefaultInitOpts(d.MachineName)
-	initOpts.CPUS = uint64(d.VMDriver.CPU)
-	initOpts.DiskSize = uint64(strongunits.ToGiB(strongunits.B(d.VMDriver.DiskCapacity)))
-	initOpts.Memory = uint64(d.VMDriver.Memory)
+	initOpts.CPUS = uint64(d.CPU)
+	initOpts.DiskSize = uint64(strongunits.ToGiB(strongunits.B(d.DiskCapacity)))
+	initOpts.Memory = uint64(d.Memory)
 	initOpts.Image = d.getDiskPath()
 
 	return initOpts
