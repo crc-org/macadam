@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
+	. "github.com/onsi/gomega"       //nolint:staticcheck
+	. "github.com/onsi/gomega/gexec" //nolint:staticcheck
 )
 
 var DefaultWaitTimeout = 90
