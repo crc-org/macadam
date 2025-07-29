@@ -3,7 +3,7 @@ module github.com/crc-org/macadam
 go 1.23.3
 
 require (
-	github.com/containers/common v0.64.1
+	github.com/containers/common v0.64.2
 	github.com/containers/podman/v5 v5.3.1
 	github.com/containers/storage v1.59.1
 	github.com/crc-org/crc/v2 v2.53.0
@@ -50,10 +50,10 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containernetworking/plugins v1.7.1 // indirect
-	github.com/containers/buildah v1.41.3 // indirect
+	github.com/containers/buildah v1.41.4 // indirect
 	github.com/containers/conmon v2.0.20+incompatible // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.6 // indirect
-	github.com/containers/image/v5 v5.36.1 // indirect
+	github.com/containers/image/v5 v5.36.2 // indirect
 	github.com/containers/libhvee v0.10.1-0.20250623125428-422aa7ddc0e5 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194 // indirect
@@ -71,7 +71,7 @@ require (
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v28.3.2+incompatible // indirect
+	github.com/docker/docker v28.3.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8 // indirect
@@ -158,7 +158,7 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.9.0 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/vbauerster/mpb/v8 v8.10.2 // indirect
 	github.com/vishvananda/netlink v1.3.1 // indirect
@@ -191,6 +191,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250902115822-6beaa3dcfd74
+replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250924155458-168a7bca9bee
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078

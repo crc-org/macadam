@@ -78,6 +78,10 @@ func init() {
 	flags.Uint64VarP(&initOptsFromFlags.Memory, memoryFlagName, "m", 4096, "Memory in MiB")
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
+	CloudInitPathFlagName := "cloud-init"
+	flags.StringArrayVarP(&initOptsFromFlags.CloudInitPaths, CloudInitPathFlagName, "", []string{}, "Path to user-data, meta-data and network-config cloud-init configuration files")
+	_ = initCmd.RegisterFlagCompletionFunc(CloudInitPathFlagName, completion.AutocompleteDefault)
+
 	/* flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
 
@@ -206,6 +210,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.SSHIdentityPath = initOptsFromFlags.SSHIdentityPath
 	initOpts.Username = initOptsFromFlags.Username
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
+	initOpts.CloudInitPaths = initOptsFromFlags.CloudInitPaths
 	initOpts.Capabilities = &define.MachineCapabilities{
 		HasReadyUnit:   false,
 		ForwardSockets: false,
