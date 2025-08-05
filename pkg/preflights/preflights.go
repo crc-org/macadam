@@ -31,7 +31,7 @@ func RunPreflights(provider vmconfigs.VMProvider) error {
 // macadam/podman needs a gvproxy version which supports the --services
 // argument
 func checkGvproxyVersion(provider vmconfigs.VMProvider) error {
-	if provider.VMType() == define.WSLVirt {
+	if provider.VMType() == define.WSLVirt || provider.VMType() == define.HyperVVirt {
 		return nil
 	}
 	if err := checkBinaryArg(machine.ForwarderBinaryName, "-services"); err != nil {
