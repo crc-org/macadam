@@ -50,6 +50,8 @@ func start(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	// set exclusive mode to false so to allow multiple VMs to run at the same time
+	vmProvider.SetExclusiveActive(false)
 	vmConfig, _, err := shim.VMExists(initOpts.Name, []vmconfigs.VMProvider{vmProvider})
 	if err != nil {
 		return err

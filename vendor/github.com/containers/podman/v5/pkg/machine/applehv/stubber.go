@@ -23,7 +23,8 @@ import (
 // and is required for network flow
 
 var (
-	vfkitCommand = "vfkit"
+	vfkitCommand    = "vfkit"
+	exclusiveActive = true
 )
 
 type AppleHVStubber struct {
@@ -38,8 +39,12 @@ func (a *AppleHVStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) boo
 	return false
 }
 
+func (a *AppleHVStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
 func (a *AppleHVStubber) RequireExclusiveActive() bool {
-	return true
+	return exclusiveActive
 }
 
 func (a *AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) error {

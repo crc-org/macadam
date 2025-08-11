@@ -25,6 +25,10 @@ type WSLStubber struct {
 	vmconfigs.WSLConfig
 }
 
+var (
+	exclusiveActive = false
+)
+
 func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
 	var (
 		err error
@@ -191,8 +195,12 @@ func (w WSLStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) bool {
 	return true
 }
 
+func (w WSLStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
 func (w WSLStubber) RequireExclusiveActive() bool {
-	return false
+	return exclusiveActive
 }
 
 func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
