@@ -9,13 +9,14 @@ require (
 	github.com/crc-org/crc/v2 v2.53.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
 	github.com/lima-vm/go-qcow2reader v0.6.0
-	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/ginkgo/v2 v2.24.0
 	github.com/onsi/gomega v1.38.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/opencontainers/cgroups v0.0.4 // indirect
 	github.com/sigstore/protobuf-specs v0.4.1 // indirect
@@ -168,15 +169,15 @@ require (
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/grpc v1.72.2 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
