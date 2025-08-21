@@ -76,7 +76,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		if err != nil {
 			return err
 		}
-		q.Command.SetBootableImage(cloudInitISO)
+		q.Command.SetISOImage(cloudInitISO.GetPath())
 	} else {
 		ignitionFile, err := mc.IgnitionFile()
 		if err != nil {
@@ -374,7 +374,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
 		}
-		err := machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args)
+		err := machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args)
 		if err != nil {
 			return err
 		}
@@ -389,7 +389,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 			mountFlags += ",ro"
 		}
 		mountOptions = append(mountOptions, "-o", mountFlags)
-		err = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
+		err = machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
 		if err != nil {
 			return err
 		}

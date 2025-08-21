@@ -49,13 +49,13 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containernetworking/plugins v1.7.1 // indirect
-	github.com/containers/buildah v1.40.1 // indirect
+	github.com/containers/buildah v1.41.3 // indirect
 	github.com/containers/conmon v2.0.20+incompatible // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.6 // indirect
 	github.com/containers/image/v5 v5.36.1 // indirect
 	github.com/containers/libhvee v0.10.1-0.20250623125428-422aa7ddc0e5 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20250217190002-40bd943d93b8 // indirect
+	github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194 // indirect
 	github.com/containers/ocicrypt v1.2.1 // indirect
 	github.com/containers/psgo v1.9.0 // indirect
 	github.com/containers/winquit v1.1.0 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fsouza/go-dockerclient v1.12.0 // indirect
+	github.com/fsouza/go-dockerclient v1.12.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
-	github.com/moby/buildkit v0.21.0 // indirect
+	github.com/moby/buildkit v0.23.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/capability v0.4.0 // indirect
@@ -135,7 +135,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 // indirect
 	github.com/opencontainers/selinux v1.12.0 // indirect
-	github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8 // indirect
+	github.com/openshift/imagebuilder v1.2.16 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
@@ -190,6 +190,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250820155027-6dafce88ec50
+replace github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250827094930-c4e064e63225
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078

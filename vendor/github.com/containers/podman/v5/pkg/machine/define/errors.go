@@ -3,14 +3,14 @@ package define
 import (
 	"errors"
 	"fmt"
-
-	"github.com/containers/common/pkg/strongunits"
 )
 
 var (
-	ErrWrongState      = errors.New("VM in wrong state to perform action")
-	ErrVMAlreadyExists = errors.New("VM already exists")
-	ErrNotImplemented  = errors.New("functionality not implemented")
+	ErrWrongState          = errors.New("VM in wrong state to perform action")
+	ErrVMAlreadyExists     = errors.New("VM already exists")
+	ErrNotImplemented      = errors.New("functionality not implemented")
+	ErrInitRelaunchAttempt = errors.New("stopping execution: 'init' relaunched with --reexec flag to reinitialize the VM")
+	ErrRebootInitiated     = errors.New("system reboot initiated")
 )
 
 type ErrVMRunningCannotDestroyed struct {
@@ -28,14 +28,6 @@ type ErrVMDoesNotExist struct {
 func (err *ErrVMDoesNotExist) Error() string {
 	// the current error in qemu is not quoted
 	return fmt.Sprintf("%s: VM does not exist", err.Name)
-}
-
-type ErrNewDiskSizeTooSmall struct {
-	OldSize, NewSize strongunits.GiB
-}
-
-func (err *ErrNewDiskSizeTooSmall) Error() string {
-	return fmt.Sprintf("invalid disk size %d: new disk must be larger than %dGB", err.OldSize, err.NewSize)
 }
 
 type ErrIncompatibleMachineConfig struct {

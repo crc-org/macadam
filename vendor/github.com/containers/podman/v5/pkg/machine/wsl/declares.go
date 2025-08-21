@@ -42,6 +42,7 @@ chown [USER]:[USER] /home/[USER]/.config
 `
 
 const configServicesPodman = `mkdir -p /etc/containers/registries.conf.d
+ln -fs /usr/lib/systemd/user/podman.socket /etc/systemd/user/sockets.target.wants/podman.socket
 ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.wants/podman.socket
 ` + configServices
 
@@ -119,19 +120,6 @@ const overrideSysusers = `[Service]
 LoadCredential=
 `
 
-const lingerService = `[Unit]
-Description=A systemd user unit demo
-After=network-online.target
-Wants=network-online.target podman.socket
-[Service]
-ExecStart=/usr/bin/sleep infinity
-`
-
-const lingerSetup = `mkdir -p /home/[USER]/.config/systemd/user/default.target.wants
-ln -fs /home/[USER]/.config/systemd/user/linger-example.service \
-       /home/[USER]/.config/systemd/user/default.target.wants/linger-example.service
-`
-
 const bindMountSystemService = `
 [Unit]
 Description=Bind mount for system podman sockets
@@ -199,17 +187,6 @@ outlined in the following article:
 http://docs.microsoft.com/en-us/windows/wsl/install
 
 `
-
-const wslKernelError = `Could not %s. See previous output for any potential failure details.
-If you can not resolve the issue, try rerunning the "podman machine init command". If that fails
-try the "wsl --update" command and then rerun "podman machine init". Finally, if all else fails,
-try following the steps outlined in the following article:
-
-http://docs.microsoft.com/en-us/windows/wsl/install
-
-`
-
-const wslInstallKernel = "install the WSL Kernel"
 
 const wslOldVersion = `Automatic installation of WSL can not be performed on this version of Windows
 Either update to Build 19041 (or later), or perform the manual installation steps

@@ -27,8 +27,7 @@ type MachineConfig struct {
 	SSH       SSHConfig
 	Version   uint
 
-	// Image stuff
-	imageDescription machineImage //nolint:unused
+	Swap strongunits.MiB
 
 	ImagePath *define.VMFile // Temporary only until a proper image struct is worked out
 
@@ -59,28 +58,6 @@ type MachineConfig struct {
 	CloudInit    bool
 	Capabilities *define.MachineCapabilities
 	IPAddress    string
-}
-
-type machineImage interface { //nolint:unused
-	download() error
-	path() string
-}
-
-type OCIMachineImage struct {
-	// registry
-	// TODO JSON serial/deserial will write string to disk
-	// but in code it is a types.ImageReference
-
-	// quay.io/podman/podman-machine-image:5.0
-	FQImageReference string
-}
-
-func (o OCIMachineImage) path() string {
-	return ""
-}
-
-func (o OCIMachineImage) download() error {
-	return nil
 }
 
 type VMProvider interface { //nolint:interfacebloat

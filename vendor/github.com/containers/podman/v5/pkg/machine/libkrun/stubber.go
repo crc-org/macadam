@@ -34,7 +34,7 @@ func (l *LibKrunStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machin
 	mc.LibKrunHypervisor = new(vmconfigs.LibKrunConfig)
 	mc.LibKrunHypervisor.KRun = vfkit.Helper{}
 
-	bl := vfConfig.NewEFIBootloader(fmt.Sprintf("%s/efi-bl-%s", opts.Dirs.DataDir.GetPath(), opts.Name), true)
+	bl := vfConfig.NewEFIBootloader(apple.EfiVarsPath(opts.Dirs.DataDir, opts.Name), true)
 	mc.LibKrunHypervisor.KRun.VirtualMachine = vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), uint64(mc.Resources.Memory), bl)
 
 	randPort, err := utils.GetRandomPort()
@@ -78,7 +78,7 @@ func (l *LibKrunStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet boo
 }
 
 func (l *LibKrunStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
-	return []string{}, func() error { return nil }, nil
+	return apple.Remove(mc)
 }
 
 func (l *LibKrunStubber) RemoveAndCleanMachines(dirs *define.MachineDirs) error {

@@ -32,9 +32,7 @@ var ErrRemoveUserCancelled = errors.New("user cancelled the removal operation")
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
 func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
-	var (
-		lrs []*machine.ListResponse
-	)
+	var lrs []*machine.ListResponse
 
 	for _, s := range vmstubbers {
 		dirs, err := env.GetMachineDirs(s.VMType())
@@ -51,15 +49,15 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 				return nil, err
 			}
 			lr := machine.ListResponse{
-				Name:      name,
-				CreatedAt: mc.Created,
-				LastUp:    mc.LastUp,
-				Running:   state == machineDefine.Running,
-				Starting:  mc.Starting,
-				//Stream:             "", // No longer applicable
+				Name:               name,
+				CreatedAt:          mc.Created,
+				LastUp:             mc.LastUp,
+				Running:            state == machineDefine.Running,
+				Starting:           mc.Starting,
 				VMType:             s.VMType().String(),
 				CPUs:               mc.Resources.CPUs,
 				Memory:             mc.Resources.Memory,
+				Swap:               mc.Swap,
 				DiskSize:           mc.Resources.DiskSize,
 				Port:               mc.SSH.Port,
 				RemoteUsername:     mc.SSH.RemoteUsername,
@@ -111,8 +109,12 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	if err != nil {
 		return err
 	}
-	machineLock.Lock()
-	defer machineLock.Unlock()
+
+	// If the machine is being re-launched, the lock is already held
+	if !opts.ReExec {
+		machineLock.Lock()
+		defer machineLock.Unlock()
+	}
 
 	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath, mp.VMType(), machineLock)
 	if err != nil {
@@ -123,8 +125,9 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	mc.Capabilities = opts.Capabilities
 
 	createOpts := machineDefine.CreateVMOpts{
-		Name: opts.Name,
-		Dirs: dirs,
+		Name:   opts.Name,
+		Dirs:   dirs,
+		ReExec: opts.ReExec,
 	}
 
 	if umn := opts.UserModeNetworking; umn != nil {
@@ -224,6 +227,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 			VMType:    mp.VMType(),
 			WritePath: ignitionFile.GetPath(),
 			Rootful:   opts.Rootful,
+			Swap:      opts.Swap,
 		})
 		ignBuilder = &tmpIgnBuilder
 
@@ -267,6 +271,14 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		ignBuilder.WithUnit(readyUnit)
 	}
 
+	// CreateVM could cause the init command to be re-launched in some cases (e.g. wsl)
+	// so we need to avoid creating the machine config or connections before this check happens.
+	// when relaunching, the invoked 'init' command will be responsible to set up the machine
+	err = mp.CreateVM(createOpts, mc, ignBuilder)
+	if err != nil {
+		return err
+	}
+
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if mc.Capabilities.GetForwardSockets() {
 		if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
@@ -281,11 +293,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 			return connection.RemoveConnections(machines, mc.Name, mc.Name+"-root")
 		}
 		callbackFuncs.Add(cleanup)
-	}
-
-	err = mp.CreateVM(createOpts, mc, ignBuilder)
-	if err != nil {
-		return err
 	}
 
 	if len(opts.IgnitionPath) == 0 && !opts.CloudInit {
@@ -430,7 +437,7 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 
 	// Stop GvProxy and remove PID file
 	if !mp.UseProviderNetworkSetup(mc) {
-		gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
+		gvproxyPidFile, err := machine.GetGVProxyPIDFile(mc, dirs)
 		if err != nil {
 			return err
 		}
@@ -516,7 +523,7 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		}
 	}()
 
-	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
+	gvproxyPidFile, err := machine.GetGVProxyPIDFile(mc, dirs)
 	if err != nil {
 		return err
 	}
@@ -622,7 +629,7 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	}
 
 	if mp.VMType() == machineDefine.WSLVirt && mc.Ansible != nil && mc.IsFirstBoot() {
-		if err := machine.CommonSSHSilent(mc.Ansible.User, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"ansible-playbook", mc.Ansible.PlaybookPath}); err != nil {
+		if err := machine.LocalhostSSHSilent(mc.Ansible.User, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"ansible-playbook", mc.Ansible.PlaybookPath}); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -679,7 +686,16 @@ func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefin
 
 func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.RemoveOptions) error {
 	mc.Lock()
-	defer mc.Unlock()
+	defer func() {
+		mc.Unlock()
+
+		// Remove the lock file
+		lockPath := lock.GetMachineLockPath(mc.Name, dirs.ConfigDir.GetPath())
+		if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+			logrus.Errorf("failed to remove lock file at %s: %v", lockPath, err)
+			return
+		}
+	}()
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}

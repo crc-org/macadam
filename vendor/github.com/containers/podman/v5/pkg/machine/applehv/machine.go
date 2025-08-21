@@ -3,12 +3,13 @@
 package applehv
 
 import (
+	"github.com/containers/podman/v5/pkg/machine/apple"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 func (a *AppleHVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
-	return []string{}, func() error { return nil }, nil
+	return apple.Remove(mc)
 }
 
 func (a *AppleHVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {

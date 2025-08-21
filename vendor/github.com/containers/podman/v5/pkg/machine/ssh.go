@@ -13,38 +13,39 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// CommonSSH is a common function for ssh'ing to a podman machine using system-connections
+// LocalhostSSH is a common function for ssh'ing to a podman machine using system-connections
 // and a port
 // TODO This should probably be taught about an machineconfig to reduce input
-func CommonSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return commonBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, os.Stdin)
+func LocalhostSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, os.Stdin)
 }
 
-func CommonSSHShellWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+// This ssh’es to a podman machine which is not listening on localhost but has its own IP
+func LocalhostSSHShellWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
 	if address == "" {
 		address = "localhost"
 	}
-	return commonNativeSSH(username, identityPath, name, address, sshPort, inputArgs, os.Stdin)
+	return localhostNativeSSH(username, identityPath, name, address, sshPort, inputArgs, os.Stdin)
 }
 
-func CommonSSHShell(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return CommonSSHShellWithAddress(username, identityPath, name, "localhost", sshPort, inputArgs)
+func LocalhostSSHShell(username, identityPath, name string, sshPort int, inputArgs []string) error {
+	return localhostNativeSSH(username, identityPath, name, "localhost", sshPort, inputArgs, os.Stdin)
 }
 
-func CommonSSHSilent(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return commonBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, false, nil)
+func LocalhostSSHSilent(username, identityPath, name string, sshPort int, inputArgs []string) error {
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, false, nil)
 }
 
-func CommonSSHWithStdin(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader) error {
-	return commonBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, stdin)
+func LocalhostSSHWithStdin(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader) error {
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, stdin)
 }
 
-func CommonSSHSilentWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
-	return commonBuiltinSSH(username, identityPath, name, address, sshPort, inputArgs, false, nil)
+func LocalhostSSHSilentWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+	return localhostBuiltinSSH(username, identityPath, name, address, sshPort, inputArgs, false, nil)
 }
 
-func commonBuiltinSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
-	config, err := createConfig(username, identityPath)
+func localhostBuiltinSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
+	config, err := createLocalhostConfig(username, identityPath) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,10 @@ func runSessionWithDebug(session *ssh.Session, cmd string) error {
 	return session.Wait()
 }
 
-func createConfig(user string, identityPath string) (*ssh.ClientConfig, error) {
+// createLocalhostConfig returns a *ssh.ClientConfig for authenticating a user using a private key
+//
+// WARNING: This MUST NOT be used to communicate over untrusted networks.
+func createLocalhostConfig(user string, identityPath string) (*ssh.ClientConfig, error) {
 	key, err := os.ReadFile(identityPath)
 	if err != nil {
 		return nil, err
@@ -114,18 +118,23 @@ func createConfig(user string, identityPath string) (*ssh.ClientConfig, error) {
 	}
 
 	return &ssh.ClientConfig{
-		User:            user,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		// Not specifying ciphers / MACs seems to allow fairly weak ciphers. This config is restricted
+		// to connecting to localhost: where we rely on the kernel’s process isolation, not primarily on cryptography.
+		User: user,
+		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		// This config is restricted to connecting to localhost (and to a VM we manage),
+		// we rely on the kernel’s process isolation, not on cryptography,
+		// This would be UNACCEPTABLE for most other uses.
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 
-func commonNativeSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, stdin io.Reader) error {
+func localhostNativeSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, stdin io.Reader) error {
 	sshDestination := username + "@" + address
 	port := strconv.Itoa(sshPort)
 	interactive := true
 
-	args := append([]string{"-i", identityPath, "-p", port, sshDestination}, CommonSSHArgs()...)
+	args := append([]string{"-i", identityPath, "-p", port, sshDestination}, LocalhostSSHArgs()...) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if len(inputArgs) > 0 {
 		interactive = false
 		args = append(args, inputArgs...)
@@ -145,7 +154,13 @@ func commonNativeSSH(username, identityPath, name, address string, sshPort int, 
 	return cmd.Run()
 }
 
-func CommonSSHArgs() []string {
+// LocalhostSSHArgs returns OpenSSH command-line options for connecting with no host key identity checks.
+//
+// WARNING: This MUST NOT be used to communicate over untrusted networks.
+func LocalhostSSHArgs() []string {
+	// This config is restricted to connecting to localhost (and to a VM we manage),
+	// we rely on the kernel’s process isolation, not on cryptography,
+	// This would be UNACCEPTABLE for most other uses.
 	return []string{
 		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",

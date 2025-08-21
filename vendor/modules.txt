@@ -115,7 +115,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.40.1
+# github.com/containers/buildah v1.41.3
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -296,8 +296,8 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250217190002-40bd943d93b8
-## explicit; go 1.20
+# github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194
+## explicit; go 1.23.0
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
 ## explicit; go 1.22
@@ -317,7 +317,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250820155027-6dafce88ec50
+# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250827094930-c4e064e63225
 ## explicit; go 1.23.3
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
@@ -342,6 +342,7 @@ github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil
 github.com/containers/podman/v5/pkg/auth
 github.com/containers/podman/v5/pkg/autoupdate
 github.com/containers/podman/v5/pkg/bindings
+github.com/containers/podman/v5/pkg/bindings/artifacts
 github.com/containers/podman/v5/pkg/bindings/containers
 github.com/containers/podman/v5/pkg/bindings/generate
 github.com/containers/podman/v5/pkg/bindings/images
@@ -383,6 +384,7 @@ github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/util/intstr
 github.com/containers/podman/v5/pkg/libartifact
 github.com/containers/podman/v5/pkg/libartifact/store
 github.com/containers/podman/v5/pkg/libartifact/types
+github.com/containers/podman/v5/pkg/logiface
 github.com/containers/podman/v5/pkg/lookup
 github.com/containers/podman/v5/pkg/machine
 github.com/containers/podman/v5/pkg/machine/apple
@@ -414,6 +416,7 @@ github.com/containers/podman/v5/pkg/machine/wsl/wutil
 github.com/containers/podman/v5/pkg/namespaces
 github.com/containers/podman/v5/pkg/parallel
 github.com/containers/podman/v5/pkg/parallel/ctr
+github.com/containers/podman/v5/pkg/pidhandle
 github.com/containers/podman/v5/pkg/ps
 github.com/containers/podman/v5/pkg/ps/define
 github.com/containers/podman/v5/pkg/rctl
@@ -432,6 +435,7 @@ github.com/containers/podman/v5/pkg/systemd/define
 github.com/containers/podman/v5/pkg/systemd/generate
 github.com/containers/podman/v5/pkg/systemd/notifyproxy
 github.com/containers/podman/v5/pkg/systemd/parser
+github.com/containers/podman/v5/pkg/systemd/quadlet
 github.com/containers/podman/v5/pkg/trust
 github.com/containers/podman/v5/pkg/util
 github.com/containers/podman/v5/utils
@@ -620,8 +624,8 @@ github.com/felixge/httpsnoop
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
 github.com/fsnotify/fsnotify/internal
-# github.com/fsouza/go-dockerclient v1.12.0
-## explicit; go 1.22
+# github.com/fsouza/go-dockerclient v1.12.1
+## explicit; go 1.23
 github.com/fsouza/go-dockerclient
 # github.com/go-jose/go-jose/v4 v4.0.5
 ## explicit; go 1.21
@@ -775,7 +779,7 @@ github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs/v3 v3.0.1
 ## explicit; go 1.14
 github.com/mistifyio/go-zfs/v3
-# github.com/moby/buildkit v0.21.0
+# github.com/moby/buildkit v0.23.2
 ## explicit; go 1.23.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
@@ -898,7 +902,7 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8
+# github.com/openshift/imagebuilder v1.2.16
 ## explicit; go 1.22.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
@@ -1296,5 +1300,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250820155027-6dafce88ec50
+# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250827094930-c4e064e63225
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078

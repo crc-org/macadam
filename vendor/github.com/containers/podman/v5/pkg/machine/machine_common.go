@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
@@ -107,10 +106,4 @@ issues with non-podman clients, you can switch using the following command:
 
 `
 	fmt.Printf(fmtString, suffix)
-}
-
-// SetRootful modifies the machine's default connection to be either rootful or
-// rootless
-func SetRootful(rootful bool, name, rootfulName string) error {
-	return connection.UpdateConnectionIfDefault(rootful, name, rootfulName)
 }

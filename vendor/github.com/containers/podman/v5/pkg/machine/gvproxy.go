@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 // CleanupGVProxy reads the --pid-file for gvproxy attempts to stop it
@@ -28,4 +29,12 @@ func CleanupGVProxy(f define.VMFile) error {
 		return err
 	}
 	return removeGVProxyPIDFile(f)
+}
+
+func GetGVProxyPIDFile(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) (*define.VMFile, error) {
+	return dirs.RuntimeDir.AppendToNewVMFile(fmt.Sprintf("gvproxy-%s.pid", mc.Name), nil)
+}
+
+func GetGVProxyLogFile(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) (*define.VMFile, error) {
+	return dirs.RuntimeDir.AppendToNewVMFile(fmt.Sprintf("gvproxy-%s.log", mc.Name), nil)
 }

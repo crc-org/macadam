@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/completion"
 	"github.com/containers/buildah/pkg/parse"
 	commonComp "github.com/containers/common/pkg/completion"
@@ -73,6 +74,7 @@ type BudResults struct {
 	From                string
 	Iidfile             string
 	InheritLabels       bool
+	InheritAnnotations  bool
 	Label               []string
 	LayerLabel          []string
 	Logfile             string
@@ -108,7 +110,7 @@ type BudResults struct {
 	SkipUnusedStages    bool
 	Stdin               bool
 	Tag                 []string
-	BuildOutput         string
+	BuildOutputs        []string
 	Target              string
 	TLSVerify           bool
 	Jobs                int
@@ -116,12 +118,16 @@ type BudResults struct {
 	RusageLogFile       string
 	UnsetEnvs           []string
 	UnsetLabels         []string
+	UnsetAnnotations    []string
 	Envs                []string
 	OSFeatures          []string
 	OSVersion           string
 	CWOptions           string
 	SBOMOptions         []string
 	CompatVolumes       bool
+	SourceDateEpoch     string
+	RewriteTimestamp    bool
+	CreatedAnnotation   bool
 }
 
 // FromAndBugResults represents the results for common flags
@@ -233,7 +239,9 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Compress, "compress", false, "this is a legacy option, which has no effect on the image")
 	fs.BoolVar(&flags.CompatVolumes, "compat-volumes", false, "preserve the contents of VOLUMEs during RUN instructions")
 	fs.BoolVar(&flags.InheritLabels, "inherit-labels", true, "inherit the labels from the base image or base stages.")
+	fs.BoolVar(&flags.InheritAnnotations, "inherit-annotations", true, "inherit the annotations from the base image or base stages.")
 	fs.StringArrayVar(&flags.CPPFlags, "cpp-flag", []string{}, "set additional flag to pass to C preprocessor (cpp)")
+	fs.BoolVar(&flags.CreatedAnnotation, "created-annotation", true, `set an "org.opencontainers.image.created" annotation in the image`)
 	fs.StringVar(&flags.Creds, "creds", "", "use `[username[:password]]` for accessing the registry")
 	fs.StringVarP(&flags.CWOptions, "cw", "", "", "confidential workload `options`")
 	fs.BoolVarP(&flags.DisableCompression, "disable-compression", "D", true, "don't compress layers by default")
@@ -273,7 +281,7 @@ always:  pull base and SBOM scanner images even if the named images are present 
 missing: pull base and SBOM scanner images if the named images are not present in store.
 never:   only use images present in store if available.
 newer:   only pull base and SBOM scanner images when newer images exist on the registry than those in the store.`)
-	fs.Lookup("pull").NoOptDefVal = "missing" // treat a --pull with no argument like --pull=missing
+	fs.Lookup("pull").NoOptDefVal = "always" // treat a --pull with no argument like --pull=always
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	if err := fs.MarkHidden("pull-always"); err != nil {
 		panic(fmt.Sprintf("error marking the pull-always flag as hidden: %v", err))
@@ -303,17 +311,24 @@ newer:   only pull base and SBOM scanner images when newer images exist on the r
 		panic(fmt.Sprintf("error marking the signature-policy flag as hidden: %v", err))
 	}
 	fs.BoolVar(&flags.SkipUnusedStages, "skip-unused-stages", true, "skips stages in multi-stage builds which do not affect the final target")
+	sourceDateEpochUsageDefault := ", defaults to current time"
+	if v := os.Getenv(internal.SourceDateEpochName); v != "" {
+		sourceDateEpochUsageDefault = ""
+	}
+	fs.StringVar(&flags.SourceDateEpoch, "source-date-epoch", os.Getenv(internal.SourceDateEpochName), "set new timestamps in image info to `seconds` after the epoch"+sourceDateEpochUsageDefault)
+	fs.BoolVar(&flags.RewriteTimestamp, "rewrite-timestamp", false, "set timestamps in layers to no later than the value for --source-date-epoch")
 	fs.BoolVar(&flags.Squash, "squash", false, "squash all image layers into a single layer")
 	fs.StringArrayVar(&flags.SSH, "ssh", []string{}, "SSH agent socket or keys to expose to the build. (format: default|<id>[=<socket>|<key>[,<key>]])")
 	fs.BoolVar(&flags.Stdin, "stdin", false, "pass stdin into containers")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
-	fs.StringVarP(&flags.BuildOutput, "output", "o", "", "output destination (format: type=local,dest=path)")
+	fs.StringArrayVarP(&flags.BuildOutputs, "output", "o", nil, "output destination (format: type=local,dest=path)")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
-	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set created timestamp to the specified epoch seconds to allow for deterministic builds, defaults to current time")
+	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set new timestamps in image info and layer to `seconds` after the epoch, defaults to current times")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	fs.String("variant", "", "override the `variant` of the specified image")
 	fs.StringSliceVar(&flags.UnsetEnvs, "unsetenv", nil, "unset environment variable from final image")
 	fs.StringSliceVar(&flags.UnsetLabels, "unsetlabel", nil, "unset label when inheriting labels from base image")
+	fs.StringSliceVar(&flags.UnsetAnnotations, "unsetannotation", nil, "unset annotation when inheriting annotations from base image")
 	return fs
 }
 
@@ -363,11 +378,13 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["sign-by"] = commonComp.AutocompleteNone
 	flagCompletion["signature-policy"] = commonComp.AutocompleteNone
 	flagCompletion["ssh"] = commonComp.AutocompleteNone
+	flagCompletion["source-date-epoch"] = commonComp.AutocompleteNone
 	flagCompletion["tag"] = commonComp.AutocompleteNone
 	flagCompletion["target"] = commonComp.AutocompleteNone
 	flagCompletion["timestamp"] = commonComp.AutocompleteNone
 	flagCompletion["unsetenv"] = commonComp.AutocompleteNone
 	flagCompletion["unsetlabel"] = commonComp.AutocompleteNone
+	flagCompletion["unsetannotation"] = commonComp.AutocompleteNone
 	flagCompletion["variant"] = commonComp.AutocompleteNone
 	return flagCompletion
 }

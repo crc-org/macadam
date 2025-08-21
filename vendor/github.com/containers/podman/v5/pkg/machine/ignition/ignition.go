@@ -67,6 +67,7 @@ type DynamicIgnition struct {
 	Rootful    bool
 	NetRecover bool
 	Rosetta    bool
+	Swap       uint64
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -136,82 +137,49 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover),
-		Links:       getLinks(ign.Name),
+		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover, ign.Swap),
+		Links:       getLinks(),
 	}
 
 	// Add or set the time zone for the machine
 	if len(ign.TimeZone) > 0 {
-		var (
-			err error
-			tz  string
-		)
+		var err error
+		tz := ign.TimeZone
 		// local means the same as the host
 		// look up where it is pointing to on the host
 		if ign.TimeZone == "local" {
-			tz, err = getLocalTimeZone()
-			if err != nil {
-				return err
+			if env, ok := os.LookupEnv("TZ"); ok {
+				tz = env
+			} else {
+				tz, err = getLocalTimeZone()
+				if err != nil {
+					return fmt.Errorf("error getting local timezone: %q", err)
+				}
 			}
+		}
+		// getLocalTimeZone() can return empty string, do not add broken symlink in that case
+		// coreos will default to UTC
+		if tz == "" {
+			logrus.Info("Unable to determine local timezone, machine will default to UTC")
 		} else {
-			tz = ign.TimeZone
+			tzLink := Link{
+				Node: Node{
+					Group:     GetNodeGrp("root"),
+					Path:      "/etc/localtime",
+					Overwrite: BoolToPtr(false),
+					User:      GetNodeUsr("root"),
+				},
+				LinkEmbedded1: LinkEmbedded1{
+					Hard: BoolToPtr(false),
+					// We always want this value in unix form (../usr/share/zoneinfo) because this is being
+					// set in the machine OS (always Linux) and systemd needs the relative symlink.  However,
+					// filepath.join on windows will use a "\\" separator so use path.Join() which always
+					// uses the slash.
+					Target: path.Join("../usr/share/zoneinfo", tz),
+				},
+			}
+			ignStorage.Links = append(ignStorage.Links, tzLink)
 		}
-		tzLink := Link{
-			Node: Node{
-				Group:     GetNodeGrp("root"),
-				Path:      "/etc/localtime",
-				Overwrite: BoolToPtr(false),
-				User:      GetNodeUsr("root"),
-			},
-			LinkEmbedded1: LinkEmbedded1{
-				Hard: BoolToPtr(false),
-				// We always want this value in unix form (/path/to/something) because this is being
-				// set in the machine OS (always Linux).  However, filepath.join on windows will use a "\\"
-				// separator; therefore we use ToSlash to convert the path to unix style
-				Target: filepath.ToSlash(filepath.Join("/usr/share/zoneinfo", tz)),
-			},
-		}
-		ignStorage.Links = append(ignStorage.Links, tzLink)
-	}
-
-	// This service gets environment variables that are provided
-	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
-	// profile.d and environment.d files
-	//
-	// Currently, it is used for propagating
-	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
-	// a need of re-creating/re-initiating a VM
-
-	envset := parser.NewUnitFile()
-	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
-
-	envset.Add("Service", "Type", "oneshot")
-	envset.Add("Service", "RemainAfterExit", "yes")
-	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
-	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
-	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
-	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
-	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
-
-	envset.Add("Install", "WantedBy", "sysinit.target")
-	envsetFile, err := envset.ToString()
-	if err != nil {
-		return err
 	}
 
 	ignSystemd := Systemd{
@@ -229,16 +197,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Name:    "zincati.service",
 			},
 		},
-	}
-
-	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == define.QemuVirt {
-		qemuUnit := Unit{
-			Enabled:  BoolToPtr(true),
-			Name:     "envset-fwcfg.service",
-			Contents: &envsetFile,
-		}
-		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
 	// Only AppleHv with Apple Silicon can use Rosetta
@@ -273,7 +231,6 @@ func getDirs(usrName string) []Directory {
 		"/home/" + usrName + "/.config/containers",
 		"/home/" + usrName + "/.config/systemd",
 		"/home/" + usrName + "/.config/systemd/user",
-		"/home/" + usrName + "/.config/systemd/user/default.target.wants",
 	}
 	var (
 		dirs = make([]Directory, len(newDirs))
@@ -293,18 +250,25 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool, swap uint64) []File {
 	files := make([]File, 0)
 
-	lingerExample := parser.NewUnitFile()
-	lingerExample.Add("Unit", "Description", "A systemd user unit demo")
-	lingerExample.Add("Unit", "After", "network-online.target")
-	lingerExample.Add("Unit", "Wants", "network-online.target podman.socket")
-	lingerExample.Add("Service", "ExecStart", "/usr/bin/sleep infinity")
-	lingerExampleFile, err := lingerExample.ToString()
-	if err != nil {
-		logrus.Warn(err.Error())
-	}
+	// enable linger mode for the user
+	files = append(files, File{
+		Node: Node{
+			Group: GetNodeGrp("root"),
+			Path:  "/var/lib/systemd/linger/" + usrName,
+			User:  GetNodeUsr("root"),
+			// the coreos image might already have this defined
+			Overwrite: BoolToPtr(true),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Contents: Resource{
+				Source: EncodeDataURLPtr(""),
+			},
+			Mode: IntToPtr(0644),
+		},
+	})
 
 	containers := `[containers]
 netns="bridge"
@@ -323,22 +287,6 @@ pids_limit=0
 		subUID = uid + 1
 	}
 	etcSubUID := fmt.Sprintf(`%s:%d:%d`, usrName, subUID, subUIDs)
-
-	// Add a fake systemd service to get the user socket rolling
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp(usrName),
-			Path:  "/home/" + usrName + "/.config/systemd/user/linger-example.service",
-			User:  GetNodeUsr(usrName),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr(lingerExampleFile),
-			},
-			Mode: IntToPtr(0744),
-		},
-	})
 
 	// Set containers.conf up for core user to use networks
 	// by default
@@ -406,6 +354,21 @@ pids_limit=0
 			Mode: IntToPtr(0644),
 		},
 	})
+
+	if swap > 0 {
+		files = append(files, File{
+			Node: Node{
+				Path: "/etc/systemd/zram-generator.conf",
+			},
+			FileEmbedded1: FileEmbedded1{
+				Append: nil,
+				Contents: Resource{
+					Source: EncodeDataURLPtr(fmt.Sprintf("[zram0]\nzram-size=%d\n", swap)),
+				},
+				Mode: IntToPtr(0644),
+			},
+		})
+	}
 
 	// get certs for current user
 	userHome, err := os.UserHomeDir()
@@ -566,16 +529,17 @@ func getSSLFile(path, content string) File {
 	}
 }
 
-func getLinks(usrName string) []Link {
+func getLinks() []Link {
 	return []Link{{
 		Node: Node{
-			Group: GetNodeGrp(usrName),
-			Path:  "/home/" + usrName + "/.config/systemd/user/default.target.wants/linger-example.service",
-			User:  GetNodeUsr(usrName),
+			Group:     GetNodeGrp("root"),
+			Path:      "/etc/systemd/user/sockets.target.wants/podman.socket",
+			User:      GetNodeUsr("root"),
+			Overwrite: BoolToPtr(true),
 		},
 		LinkEmbedded1: LinkEmbedded1{
 			Hard:   BoolToPtr(false),
-			Target: "/home/" + usrName + "/.config/systemd/user/linger-example.service",
+			Target: "/usr/lib/systemd/user/podman.socket",
 		},
 	}, {
 		Node: Node{
@@ -607,18 +571,6 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 	}
 
 	return fmt.Sprintf("L+  /run/docker.sock   -    -    -     -   %s%s", podmanSock, suffix)
-}
-
-// SetIgnitionFile creates a new Machine File for the machine's ignition file
-// and assigns the handle to `loc`
-func SetIgnitionFile(loc *define.VMFile, vmtype define.VMType, vmName, vmConfigDir string) error {
-	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
-	if err != nil {
-		return err
-	}
-
-	*loc = *ignitionFile
-	return nil
 }
 
 type IgnitionBuilder struct {
@@ -667,24 +619,6 @@ func (i *IgnitionBuilder) Build() error {
 	return i.dynamicIgnition.Write()
 }
 
-func GetNetRecoveryFile() string {
-	return `#!/bin/bash
-# Verify network health, and bounce the network device if host connectivity
-# is lost. This is a temporary workaround for a known rare qemu/virtio issue
-# that affects some systems
-
-sleep 120 # allow time for network setup on initial boot
-while true; do
-  sleep 30
-  curl -s -o /dev/null --max-time 30 http://192.168.127.1/health
-  if [ "$?" != "0" ]; then
-    echo "bouncing nic due to loss of connectivity with host"
-    ifconfig enp0s1 down; ifconfig enp0s1 up
-  fi
-done
-`
-}
-
 func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username string) error {
 	// create the ignition file object
 	f := File{
@@ -728,19 +662,6 @@ func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username
 	i.WithUnit(playbookUnit)
 
 	return nil
-}
-
-func GetNetRecoveryUnitFile() *parser.UnitFile {
-	recoveryUnit := parser.NewUnitFile()
-	recoveryUnit.Add("Unit", "Description", "Verifies health of network and recovers if necessary")
-	recoveryUnit.Add("Unit", "After", "sshd.socket sshd.service")
-	recoveryUnit.Add("Service", "ExecStart", "/usr/local/bin/net-health-recovery.sh")
-	recoveryUnit.Add("Service", "StandardOutput", "journal")
-	recoveryUnit.Add("Service", "StandardError", "journal")
-	recoveryUnit.Add("Service", "StandardInput", "null")
-	recoveryUnit.Add("Install", "WantedBy", "default.target")
-
-	return recoveryUnit
 }
 
 func DefaultReadyUnitFile() parser.UnitFile {

@@ -85,7 +85,7 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 		if err != nil {
 			return fmt.Errorf("generating cloud-init ISO: %w", err)
 		}
-		hwConfig.DVDDiskPath = iso
+		hwConfig.DVDDiskPath = iso.GetPath()
 	}
 
 	if mc.HyperVHypervisor.UserModeNetworking {
@@ -448,7 +448,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 		return err
 	}
 	// GvProxy PID file path is now derived
-	gvproxyPIDFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
+	gvproxyPIDFile, err := machine.GetGVProxyPIDFile(mc, dirs)
 	if err != nil {
 		return err
 	}
