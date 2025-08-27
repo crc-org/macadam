@@ -17,7 +17,7 @@ func SetupEnvironment(provider vmconfigs.VMProvider) error {
 		return err
 	}
 
-	connsFile := filepath.Join(filepath.Dir(path), "macadam", connectionsFile)
+	connsFile := filepath.Join(path, "macadam", connectionsFile)
 	// set the path used for storing connection of macadam vms
 	err = os.Setenv("PODMAN_CONNECTIONS_CONF", connsFile)
 	if err != nil {
