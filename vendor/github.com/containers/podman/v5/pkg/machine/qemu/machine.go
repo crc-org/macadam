@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/containers/podman/v5/pkg/machine/cloudinit"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/storage/pkg/fileutils"
@@ -230,6 +231,11 @@ func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() erro
 		mc.QEMUHypervisor.QMPMonitor.Address.GetPath(),
 	}
 
+	cloudinitISO, err := cloudinit.GetCloudInitISOVMFile(mc)
+	if err == nil {
+		qemuRmFiles = append(qemuRmFiles, cloudinitISO.GetPath())
+	}
+
 	return qemuRmFiles, func() error {
 		var errs []error
 		if err := mc.QEMUHypervisor.QEMUPidPath.Delete(); err != nil {
@@ -239,6 +245,13 @@ func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() erro
 		if err := mc.QEMUHypervisor.QMPMonitor.Address.Delete(); err != nil {
 			errs = append(errs, err)
 		}
+
+		if cloudinitISO != nil {
+			if err := cloudinitISO.Delete(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
 		return errorhandling.JoinErrors(errs)
 	}, nil
 }

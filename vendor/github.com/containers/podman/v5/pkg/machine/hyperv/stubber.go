@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
+	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/cloudinit"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -182,7 +183,16 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		return nil, nil, err
 	}
 
+	rmFiles := []string{}
+
+	cloudinitISO, err := cloudinit.GetCloudInitISOVMFile(mc)
+	if err == nil {
+		rmFiles = append(rmFiles, cloudinitISO.GetPath())
+	}
+
 	rmFunc := func() error {
+		var errs []error
+
 		// Tear down vsocks
 		removeNetworkAndReadySocketsFromRegistry(mc)
 
@@ -191,12 +201,23 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		// TODO we could improve this by recommending an action be done
 		if !mc.CloudInit {
 			if err := removeIgnitionFromRegistry(vm); err != nil {
-				logrus.Errorf("unable to remove ignition registry entries: %q", err)
+				errs = append(errs, fmt.Errorf("unable to remove ignition registry entries: %q", err))
+			}
+		}
+
+		if cloudinitISO != nil {
+			if err := cloudinitISO.Delete(); err != nil {
+				errs = append(errs, err)
 			}
 		}
 
 		// disk path removal is done by generic remove
-		return vm.Remove("")
+		err := vm.Remove("")
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		return errorhandling.JoinErrors(errs)
 	}
 	return []string{}, rmFunc, nil
 }
