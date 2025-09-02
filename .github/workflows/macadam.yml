@@ -35,12 +35,24 @@ jobs:
 
       - name: Build
         run: make cross
-      - name: Upload macadam artifact
+      - name: Upload macadam artifact (windows)
         if: matrix.go == 'stable'
         uses: actions/upload-artifact@v4
         with:
-          name: macadam binaries
-          path: "./bin/*"
+          name: macadam windows binaries
+          path: "./bin/*windows*"
+      - name: Upload macadam artifact (linux)
+        if: matrix.go == 'stable'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macadam linux binaries
+          path: "./bin/*linux*"
+      - name: Upload macadam artifact (macos)
+        if: matrix.go == 'stable'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macadam macos binaries
+          path: "./bin/*darwin*"
 
 
   test:
@@ -79,7 +91,7 @@ jobs:
       - name: Download binary artifact
         uses: actions/download-artifact@v5
         with:
-          name: macadam binaries
+          name: macadam linux binaries
           path: ./bin
       - name: Setup qemu (Linux)
         if: runner.os == 'Linux'
