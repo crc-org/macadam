@@ -29,7 +29,7 @@ jobs:
           git fetch --tags --force
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
 
@@ -58,7 +58,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: 'oldstable'
       - name: Test
@@ -93,7 +93,7 @@ jobs:
           wget https://github.com/containers/gvisor-tap-vsock/releases/download/v0.8.6/gvproxy-linux-amd64 -O ${{ github.workspace }}/tools/gvproxy
           chmod +x ${{ github.workspace }}/tools/gvproxy
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: 'oldstable'
       - name: Grant execute permissions
@@ -113,7 +113,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: 'oldstable'
       - name: Run 'make check'
