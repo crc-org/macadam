@@ -2,7 +2,7 @@
 
 Macadam is a cross-platform virtualization tool which is used for creating and managing virtual machines across different operating systems and hypervisors. 
 
-> **Note:** Multiple machines can be created but only one macadam machine can run at a time.
+> **Note:** Multiple machines can be created and run simultaneously.
 
 ## Overview
 
@@ -138,6 +138,34 @@ You can use the `--username` flag with `macadam ssh` to specify a different SSH 
 
 ```bash
 macadam ssh --username test
+```
+
+#### `macadam rm`
+
+The `macadam rm` command removes an existing virtual machine. It accepts an optional machine name argument. If no name is provided, it defaults to removing the machine named `macadam`.
+
+When you run `macadam rm`, the command will remove the virtual machine configuration and associated files. By default, the command will prompt for confirmation before removing the machine.
+
+**Usage:**
+
+```bash
+macadam rm [MACHINE]
+```
+
+**Example:**
+
+```bash
+macadam rm vm1
+```
+
+**Flags:**
+
+- `--force` (`-f`): Stop and do not prompt before removing the machine. This flag forces the removal without user confirmation.
+
+**Example with force flag:**
+
+```bash
+macadam rm --force vm1
 ```
 
 ## Storage Organization
