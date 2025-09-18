@@ -79,7 +79,7 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
 	CloudInitPathFlagName := "cloud-init"
-	flags.StringArrayVarP(&initOptsFromFlags.CloudInitPaths, CloudInitPathFlagName, "", []string{}, "Path to user-data, meta-data and network-config cloud-init configuration files")
+	flags.StringSliceVarP(&initOptsFromFlags.CloudInitPaths, CloudInitPathFlagName, "", []string{}, "Path to user-data, meta-data and network-config cloud-init configuration files")
 	_ = initCmd.RegisterFlagCompletionFunc(CloudInitPathFlagName, completion.AutocompleteDefault)
 
 	/* flags := initCmd.Flags()
