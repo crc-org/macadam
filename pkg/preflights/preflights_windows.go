@@ -29,3 +29,12 @@ func checkVfkitVersion(provider vmconfigs.VMProvider) error {
 func checkKrunKitAvailability(provider vmconfigs.VMProvider) error {
 	return nil
 }
+
+func getBinariesDirs() []string {
+	// On Windows, Podman helper binaries dir is "C:\Program Files\RedHat\Podman"
+	// https://github.com/containers/common/blob/main/pkg/config/config_windows.go#L33-L36
+	// We use the same to detect the binaries
+	return []string{
+		"C:\\Program Files\\RedHat\\Podman",
+	}
+}

@@ -27,3 +27,15 @@ func checkVfkitVersion(provider vmconfigs.VMProvider) error {
 func checkKrunKitAvailability(provider vmconfigs.VMProvider) error {
 	return nil
 }
+
+func getBinariesDirs() []string {
+	// On Linux, Podman helper binaries dirs can be found at
+	// https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L24-L28
+	// We use the same to detect the binaries
+	return []string{
+		"/usr/local/libexec/podman",
+		"/usr/local/lib/podman",
+		"/usr/libexec/podman",
+		"/usr/lib/podman",
+	}
+}
