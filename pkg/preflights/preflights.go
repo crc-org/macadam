@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os/exec"
 
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"go.podman.io/common/pkg/config"
@@ -35,40 +34,6 @@ func RunPreflights(provider vmconfigs.VMProvider, userModeNetworking *bool) erro
 func validateOptions(provider vmconfigs.VMProvider, userModeNetworking *bool) error {
 	if provider.VMType() == define.WSLVirt && userModeNetworking != nil && *userModeNetworking {
 		return fmt.Errorf("user-mode networking is not supported on WSL. Please run the command without the --user-mode-networking flag")
-	}
-	return nil
-}
-
-// macadam/podman needs a gvproxy version which supports the --services
-// argument
-func checkGvproxyVersion(provider vmconfigs.VMProvider, userModeNetworking *bool) error {
-	if provider.VMType() == define.WSLVirt || (provider.VMType() == define.HyperVVirt && (userModeNetworking == nil || !*userModeNetworking)) {
-		return nil
-	}
-	if err := checkBinaryArg(machine.ForwarderBinaryName, "-services"); err != nil {
-		return fmt.Errorf("%w, please update to gvproxy v0.8.3 or newer", err)
-	}
-	return nil
-}
-
-// macadam/podman needs a vfkit binary which supports the --cloud-init
-// argument to inject ssh keys in RHEL cloud images
-func checkVfkitVersion(provider vmconfigs.VMProvider) error {
-	if provider.VMType() != define.AppleHvVirt {
-		return nil
-	}
-	if err := checkBinaryArg("vfkit", "--cloud-init"); err != nil {
-		return fmt.Errorf("%w, please update to vfkit v0.6.1 or newer", err)
-	}
-	return nil
-}
-
-func checkKrunKitAvailability(provider vmconfigs.VMProvider) error {
-	if provider.VMType() != define.LibKrun {
-		return nil
-	}
-	if err := checkBinaryArg("krunkit", "--version"); err != nil {
-		return fmt.Errorf("%w, please install krunkit", err)
 	}
 	return nil
 }
