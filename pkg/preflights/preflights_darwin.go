@@ -44,8 +44,9 @@ func checkKrunKitAvailability(provider vmconfigs.VMProvider) error {
 func getBinariesDirs() []string {
 	// On Mac, Podman helper binaries dirs can be found at
 	// https://github.com/containers/common/blob/main/pkg/config/config_darwin.go#L15-L28
-	// We use the same to detect the binaries
+	// We use the same to detect the binaries and add /opt/macadam/bin to the list
 	return []string{
+		"/opt/macadam/bin",
 		// Relative to the binary directory
 		"$BINDIR/../libexec/podman",
 		// Homebrew install paths

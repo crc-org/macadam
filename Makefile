@@ -48,15 +48,13 @@ clean:
 
 bin/macadam-darwin-amd64: GOOS=darwin
 bin/macadam-darwin-amd64: GOARCH=amd64
-bin/macadam-darwin-amd64: HELPER_BINARIES_DIR=/opt/macadam/bin
 bin/macadam-darwin-amd64: force-build
-	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(MACADAM_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-darwin-arm64: GOOS=darwin
 bin/macadam-darwin-arm64: GOARCH=arm64
-bin/macadam-darwin-arm64: HELPER_BINARIES_DIR=/opt/macadam/bin
 bin/macadam-darwin-arm64: force-build
-	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(MACADAM_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
+	GOARCH=$(GOARCH) GOOS=$(GOOS) go build -tags "$(BUILDTAGS)" -ldflags "$(VERSION_LDFLAGS)" -o bin/macadam-$(GOOS)-$(GOARCH) ./cmd/macadam
 
 bin/macadam-linux-amd64: GOOS=linux
 bin/macadam-linux-amd64: GOARCH=amd64
