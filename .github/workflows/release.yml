@@ -42,7 +42,7 @@ jobs:
         rm -rf ../../bin/*
         mv out/macadam-installer-macos-universal.pkg ../../bin/macadam-installer-macos-universal.pkg
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: macadam-binaries-${{ matrix.os }}
         path: bin/*
