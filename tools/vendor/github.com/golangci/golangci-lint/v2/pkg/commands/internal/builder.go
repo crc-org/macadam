@@ -92,7 +92,7 @@ func (b Builder) clone(ctx context.Context) error {
 	//nolint:gosec // the variable is sanitized.
 	cmd := exec.CommandContext(ctx,
 		"git", "clone", "--branch", sanitizeVersion(b.cfg.Version),
-		"--single-branch", "--depth", "1", "-c advice.detachedHead=false", "-q",
+		"--single-branch", "--depth", "1", "-c", "advice.detachedHead=false", "-q",
 		"https://github.com/golangci/golangci-lint.git",
 	)
 	cmd.Dir = b.root
@@ -257,7 +257,7 @@ func (b Builder) createVersion(orig string) (string, error) {
 			continue
 		}
 
-		dh, err := dirhash.HashDir(plugin.Path, "", dirhash.DefaultHash)
+		dh, err := hashDir(plugin.Path, "", dirhash.DefaultHash)
 		if err != nil {
 			return "", fmt.Errorf("hash plugin directory: %w", err)
 		}
