@@ -145,9 +145,6 @@ func DefaultInitOpts(machineName string) *define.InitOptions {
 	initOpts.USBs = []string{}
 	initOpts.IgnitionPath = ""
 	initOpts.Rootful = false
-	userModeNetworking := false
-	initOpts.UserModeNetworking = &userModeNetworking
-	// user-mode networking
 
 	return &initOpts
 }

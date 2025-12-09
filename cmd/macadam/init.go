@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/strongunits"
@@ -32,8 +33,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOptsFromFlags = define.InitOptions{}
-	// initOptionalFlags  = InitOptionalFlags{}
+	initOptsFromFlags  = define.InitOptions{}
+	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = "macadam"
 	// now                bool
 )
@@ -81,6 +82,13 @@ func init() {
 	CloudInitPathFlagName := "cloud-init"
 	flags.StringSliceVarP(&initOptsFromFlags.CloudInitPaths, CloudInitPathFlagName, "", []string{}, "Path to user-data, meta-data and network-config cloud-init configuration files")
 	_ = initCmd.RegisterFlagCompletionFunc(CloudInitPathFlagName, completion.AutocompleteDefault)
+
+	// User-mode networking flag is only available on Windows (HyperV-only)
+	if runtime.GOOS == "windows" {
+		userModeNetFlagName := "user-mode-networking"
+		flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, false,
+			"Whether this machine should use user-mode networking, routing traffic through a host user-space process (Hyperv-only, requires --provider=hyperv)")
+	}
 
 	/* flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
@@ -142,22 +150,13 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
 
 	rootfulFlagName := "rootful"
-	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
-
-	userModeNetFlagName := "user-mode-networking"
-	flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, false,
-		"Whether this machine should use user-mode networking, routing traffic through a host user-space process") */
+	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution") */
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
 	vmProvider, err := provider2.GetProviderOrDefault(provider)
 	if err != nil {
 		return err
-	}
-
-	if err := preflights.RunPreflights(vmProvider); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
 	}
 
 	/*
@@ -181,6 +180,16 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid name %q: %w", machineName, ldefine.RegexError)
 	}
 
+	initOpts := macadam.DefaultInitOpts(machineName)
+	if cmd.Flags().Changed("user-mode-networking") {
+		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
+	}
+
+	if err := preflights.RunPreflights(vmProvider, initOpts.UserModeNetworking); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
 	// Check if the disk image exists and is not larger than the specified disk size
 	if diskImage == "" {
 		return fmt.Errorf("disk image is required")
@@ -199,7 +208,6 @@ func initMachine(cmd *cobra.Command, args []string) error {
 
 	puller := imagepullers.NewNoopImagePuller(machineName, vmProvider.VMType())
 
-	initOpts := macadam.DefaultInitOpts(machineName)
 	initOpts.ImagePuller = puller
 	initOpts.ImagePuller.SetSourceURI(diskImage)
 	initOpts.Name = machineName
@@ -215,6 +223,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		HasReadyUnit:   false,
 		ForwardSockets: false,
 	}
+
 	/*
 		_, _, err = shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
 		if err == nil {

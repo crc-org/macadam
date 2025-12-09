@@ -12,8 +12,12 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
-func RunPreflights(provider vmconfigs.VMProvider) error {
-	if err := checkGvproxyVersion(provider); err != nil {
+func RunPreflights(provider vmconfigs.VMProvider, userModeNetworking *bool) error {
+	if err := validateOptions(provider, userModeNetworking); err != nil {
+		return err
+	}
+
+	if err := checkGvproxyVersion(provider, userModeNetworking); err != nil {
 		return fmt.Errorf("invalid gvproxy binary: %w", err)
 	}
 
@@ -28,10 +32,17 @@ func RunPreflights(provider vmconfigs.VMProvider) error {
 	return nil
 }
 
+func validateOptions(provider vmconfigs.VMProvider, userModeNetworking *bool) error {
+	if provider.VMType() == define.WSLVirt && userModeNetworking != nil && *userModeNetworking {
+		return fmt.Errorf("user-mode networking is not supported on WSL. Please run the command without the --user-mode-networking flag")
+	}
+	return nil
+}
+
 // macadam/podman needs a gvproxy version which supports the --services
 // argument
-func checkGvproxyVersion(provider vmconfigs.VMProvider) error {
-	if provider.VMType() == define.WSLVirt || provider.VMType() == define.HyperVVirt {
+func checkGvproxyVersion(provider vmconfigs.VMProvider, userModeNetworking *bool) error {
+	if provider.VMType() == define.WSLVirt || (provider.VMType() == define.HyperVVirt && (userModeNetworking == nil || !*userModeNetworking)) {
 		return nil
 	}
 	if err := checkBinaryArg(machine.ForwarderBinaryName, "-services"); err != nil {
