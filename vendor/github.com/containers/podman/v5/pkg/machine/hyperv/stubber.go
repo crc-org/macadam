@@ -24,10 +24,10 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/cloudinit"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/podman/v5/pkg/machine/hyperv/hutil"
 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,17 +77,9 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	}
 
 	// Set userModeNetworking based on cloudInit value for backwards compatibility
-	// Usermode networking with hyperv requires gvforwarder in the guest, and the cloud init code cannot inject it for now,
-	// so it has to be disabled.
-	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit
-	if mc.CloudInit {
-		// Generate cloud-init ISO
-		iso, err := cloudinit.GenerateISO(mc)
-		if err != nil {
-			return fmt.Errorf("generating cloud-init ISO: %w", err)
-		}
-		hwConfig.DVDDiskPath = iso.GetPath()
-	}
+	// Usermode networking is true by default when working with ignition
+	// If cloud-init is enabled, use userModeNetworking from options
+	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit || opts.UserModeNetworking
 
 	if mc.HyperVHypervisor.UserModeNetworking {
 		networkHVSock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Network)
@@ -99,6 +91,15 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	} else {
 		mc.SSH.Port = 22
 		hwConfig.Network = true
+	}
+
+	if mc.CloudInit {
+		// Generate cloud-init ISO
+		iso, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return fmt.Errorf("generating cloud-init ISO: %w", err)
+		}
+		hwConfig.DVDDiskPath = iso.GetPath()
 	}
 
 	// Add vsock port numbers to mounts
@@ -119,7 +120,7 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	callbackFuncs.Add(removeRegistrySockets)
 
 	if builder != nil {
-		netUnitFile, err := createNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
+		netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
 		if err != nil {
 			return err
 		}
@@ -137,7 +138,7 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 			FileEmbedded1: ignition.FileEmbedded1{
 				Append: nil,
 				Contents: ignition.Resource{
-					Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
+					Source: ignition.EncodeDataURLPtr(hutil.HyperVVsockNMConnection),
 				},
 				Mode: ignition.IntToPtr(0600),
 			},
@@ -646,34 +647,6 @@ func logCommandToFile(c *exec.Cmd, filename string) (*os.File, error) {
 	c.Stderr = log
 
 	return log, nil
-}
-
-const hyperVVsockNMConnection = `
-[connection]
-id=vsock0
-type=tun
-interface-name=vsock0
-
-[tun]
-mode=2
-
-[802-3-ethernet]
-cloned-mac-address=5A:94:EF:E4:0C:EE
-
-[ipv4]
-method=auto
-
-[proxy]
-`
-
-func createNetworkUnit(netPort uint64) (string, error) {
-	netUnit := parser.NewUnitFile()
-	netUnit.Add("Unit", "Description", "vsock_network")
-	netUnit.Add("Unit", "After", "NetworkManager.service")
-	netUnit.Add("Service", "ExecStart", fmt.Sprintf("/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect", netPort))
-	netUnit.Add("Service", "ExecStartPost", "/usr/bin/nmcli c up vsock0")
-	netUnit.Add("Install", "WantedBy", "multi-user.target")
-	return netUnit.ToString()
 }
 
 func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {

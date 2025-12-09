@@ -317,7 +317,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20250924155458-168a7bca9bee
+# github.com/containers/podman/v5 v5.3.1 => github.com/cfergeau/podman/v5 v5.0.0-20251105160820-19a42bf7c31b
 ## explicit; go 1.23.3
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
@@ -396,6 +396,7 @@ github.com/containers/podman/v5/pkg/machine/connection
 github.com/containers/podman/v5/pkg/machine/define
 github.com/containers/podman/v5/pkg/machine/env
 github.com/containers/podman/v5/pkg/machine/hyperv
+github.com/containers/podman/v5/pkg/machine/hyperv/hutil
 github.com/containers/podman/v5/pkg/machine/hyperv/vsock
 github.com/containers/podman/v5/pkg/machine/ignition
 github.com/containers/podman/v5/pkg/machine/libkrun
@@ -1317,5 +1318,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20250924155458-168a7bca9bee
+# github.com/containers/podman/v5 => github.com/cfergeau/podman/v5 v5.0.0-20251105160820-19a42bf7c31b
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
