@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ports"
+	"github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
@@ -74,6 +75,17 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 		cmd.AddForwardUser(forwardUser)
 		cmd.AddForwardIdentity(mc.SSH.IdentityPath)
 	}
+
+	// add REST API services endpoint
+	serviceSocketPath, err := mc.GVProxyServiceSocket()
+	if err != nil {
+		return err
+	}
+	serviceEndpoint, err := sockets.ToUnixURL(serviceSocketPath)
+	if err != nil {
+		return err
+	}
+	cmd.AddServiceEndpoint(serviceEndpoint.String())
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Debug = true
