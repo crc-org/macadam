@@ -19,11 +19,13 @@ import (
 
 func imageExtension(_ define.VMType, sourceURI string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(sourceURI))
-	if ext != ".qcow2" && ext != ".raw" {
-		return "", fmt.Errorf("unsupported image extension %s; supported formats are .qcow2 and .raw", ext)
+	switch ext {
+	case ".qcow2", ".raw", ".img":
+		// Destination for AppleHvVirt/LibKrun is raw; doCopyFile converts qcow2 -> raw.
+		return ".raw", nil
+	default:
+		return "", fmt.Errorf("unsupported image extension %s; supported formats are .qcow2, .raw and .img", ext)
 	}
-	// Destination for AppleHvVirt/LibKrun is raw; copyFileMac converts qcow2 -> raw.
-	return ".raw", nil
 }
 
 func doCopyFile(src *os.File, dest string) error {
