@@ -25,7 +25,7 @@ cross-non-darwin: bin/macadam-linux-amd64 bin/macadam-linux-arm64 bin/macadam-wi
 
 cross: cross-non-darwin bin/macadam-darwin-amd64 bin/macadam-darwin-arm64
 
-check: lint vendorcheck test
+check: cross-lint vendorcheck test
 
 test:
 	@go test -tags "$(BUILDTAGS)" -v ./pkg/...
@@ -71,6 +71,12 @@ bin/macadam-windows-arm64: force-build
 .PHONY: lint
 lint: $(TOOLS_BINDIR)/golangci-lint
 	@"$(TOOLS_BINDIR)"/golangci-lint run
+
+.PHONY: cross-lint
+cross-lint:
+	GOOS=linux $(MAKE) lint
+	GOOS=darwin $(MAKE) lint
+	GOOS=windows $(MAKE) lint
 
 .PHONY: vendor
 vendor:
