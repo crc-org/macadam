@@ -34,7 +34,7 @@ func imageExtension(vmType define.VMType, sourceURI string) (string, error) {
 		}
 		return ext, nil
 	default:
-		return "", fmt.Errorf("unsupported VM type: '%s'. Supported types are 'WSL' and 'Hyper-V'.", vmType)
+		return "", fmt.Errorf("unsupported VM type: '%s'. Supported types are 'WSL' and 'Hyper-V'", vmType)
 	}
 }
 
