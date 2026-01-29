@@ -93,6 +93,10 @@ func init() {
 			"Whether this machine should use user-mode networking, routing traffic through a host user-space process (Hyperv-only, requires --provider=hyperv)")
 	}
 
+	VolumeFlagName := "volume"
+	flags.StringArrayVarP(&initOptsFromFlags.Volumes, VolumeFlagName, "v", []string{}, "Volumes to mount, source:target")
+	_ = initCmd.RegisterFlagCompletionFunc(VolumeFlagName, completion.AutocompleteDefault)
+
 	/* flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
 
@@ -131,10 +135,6 @@ func init() {
 	if err := flags.MarkDeprecated(ImagePathFlagName, "use --image instead"); err != nil {
 		logrus.Error("unable to mark image-path flag deprecated")
 	}
-
-	VolumeFlagName := "volume"
-	flags.StringArrayVarP(&initOpts.Volumes, VolumeFlagName, "v", cfg.ContainersConfDefaultsRO.Machine.Volumes.Get(), "Volumes to mount, source:target")
-	_ = initCmd.RegisterFlagCompletionFunc(VolumeFlagName, completion.AutocompleteDefault)
 
 	USBFlagName := "usb"
 	flags.StringArrayVarP(&initOpts.USBs, USBFlagName, "", []string{},
@@ -257,6 +257,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.Memory = initOptsFromFlags.Memory
 	initOpts.SSHIdentityPath = initOptsFromFlags.SSHIdentityPath
 	initOpts.Username = initOptsFromFlags.Username
+	initOpts.Volumes = initOptsFromFlags.Volumes
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
 	initOpts.CloudInitPaths = initOptsFromFlags.CloudInitPaths
 	initOpts.Capabilities = &define.MachineCapabilities{

@@ -3,6 +3,7 @@ module github.com/crc-org/macadam
 go 1.25.0
 
 require (
+	github.com/containers/common v0.64.2
 	github.com/containers/podman/v5 v5.3.1
 	github.com/crc-org/crc/v2 v2.59.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
@@ -17,10 +18,10 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/containers/common v0.64.2 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/opencontainers/cgroups v0.0.5 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect
+	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.podman.io/image/v5 v5.39.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
@@ -96,6 +97,7 @@ require (
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -104,6 +106,7 @@ require (
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
+	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -187,4 +190,4 @@ require (
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
 
-replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331092150-dcba62a525bc
+replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331171210-b5ac9170d1ad

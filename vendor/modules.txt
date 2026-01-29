@@ -116,6 +116,8 @@ github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
 # github.com/containers/common v0.64.2
 ## explicit; go 1.23.3
+github.com/containers/common/pkg/capabilities
+github.com/containers/common/pkg/completion
 github.com/containers/common/pkg/strongunits
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
@@ -152,7 +154,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331092150-dcba62a525bc
+# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331171210-b5ac9170d1ad
 ## explicit; go 1.24.2
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
@@ -211,6 +213,8 @@ github.com/containers/podman/v5/pkg/domain/utils
 github.com/containers/podman/v5/pkg/emulation
 github.com/containers/podman/v5/pkg/env
 github.com/containers/podman/v5/pkg/errorhandling
+github.com/containers/podman/v5/pkg/fileserver
+github.com/containers/podman/v5/pkg/fileserver/plan9
 github.com/containers/podman/v5/pkg/inspect
 github.com/containers/podman/v5/pkg/k8s.io/api/apps/v1
 github.com/containers/podman/v5/pkg/k8s.io/api/core/v1
@@ -483,6 +487,15 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
+# github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308
+## explicit; go 1.21
+github.com/hugelgupf/p9/fsimpl/localfs
+github.com/hugelgupf/p9/fsimpl/templatefs
+github.com/hugelgupf/p9/fsimpl/xattr
+github.com/hugelgupf/p9/internal
+github.com/hugelgupf/p9/linux
+github.com/hugelgupf/p9/p9
+github.com/hugelgupf/p9/vecnet
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
@@ -532,6 +545,9 @@ github.com/lima-vm/go-qcow2reader/image/vmdk
 github.com/lima-vm/go-qcow2reader/image/vpc
 github.com/lima-vm/go-qcow2reader/log
 github.com/lima-vm/go-qcow2reader/lru
+# github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
+## explicit; go 1.17
+github.com/linuxkit/virtsock/pkg/hvsock
 # github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683
 ## explicit; go 1.16
 github.com/lufia/plan9stats
@@ -774,6 +790,9 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.11.0
 ## explicit; go 1.24.0
 github.com/tklauser/numcpus
+# github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701
+## explicit; go 1.21
+github.com/u-root/uio/ulog
 # github.com/ulikunitz/xz v0.5.15
 ## explicit; go 1.12
 github.com/ulikunitz/xz
@@ -1273,4 +1292,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
-# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331092150-dcba62a525bc
+# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260331171210-b5ac9170d1ad
