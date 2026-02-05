@@ -12,7 +12,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	go.podman.io/common v0.66.1
-	go.podman.io/storage v1.61.0
+	go.podman.io/storage v1.62.0
 )
 
 require (
