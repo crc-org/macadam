@@ -293,14 +293,14 @@ github.com/containers/winquit/pkg/winquit/win32
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 ## explicit
 github.com/coreos/go-systemd/activation
-# github.com/coreos/go-systemd/v22 v22.6.0
+# github.com/coreos/go-systemd/v22 v22.7.0
 ## explicit; go 1.23
 github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/crc-org/crc/v2 v2.57.0
+# github.com/crc-org/crc/v2 v2.58.0
 ## explicit; go 1.24.2
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
@@ -308,8 +308,8 @@ github.com/crc-org/crc/v2/pkg/os
 ## explicit; go 1.17
 github.com/crc-org/machine/libmachine/drivers
 github.com/crc-org/machine/libmachine/state
-# github.com/crc-org/vfkit v0.6.1
-## explicit; go 1.23.0
+# github.com/crc-org/vfkit v0.6.3
+## explicit; go 1.24.2
 github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
@@ -401,7 +401,7 @@ github.com/docker/go-plugins-helpers/volume
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
-# github.com/ebitengine/purego v0.9.0
+# github.com/ebitengine/purego v0.9.1
 ## explicit; go 1.18
 github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
@@ -496,7 +496,7 @@ github.com/kdomanski/iso9660
 # github.com/kevinburke/ssh_config v1.4.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.1
+# github.com/klauspost/compress v1.18.3
 ## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -729,7 +729,7 @@ github.com/seccomp/libseccomp-golang
 # github.com/secure-systems-lab/go-securesystemslib v0.9.1
 ## explicit; go 1.23.0
 github.com/secure-systems-lab/go-securesystemslib/encrypted
-# github.com/shirou/gopsutil/v4 v4.25.10
+# github.com/shirou/gopsutil/v4 v4.25.12
 ## explicit; go 1.24.0
 github.com/shirou/gopsutil/v4/common
 github.com/shirou/gopsutil/v4/cpu
@@ -777,11 +777,11 @@ github.com/tchap/go-patricia/v2/patricia
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 ## explicit
 github.com/titanous/rocacheck
-# github.com/tklauser/go-sysconf v0.3.15
-## explicit; go 1.23.0
+# github.com/tklauser/go-sysconf v0.3.16
+## explicit; go 1.24.0
 github.com/tklauser/go-sysconf
-# github.com/tklauser/numcpus v0.10.0
-## explicit; go 1.23.0
+# github.com/tklauser/numcpus v0.11.0
+## explicit; go 1.24.0
 github.com/tklauser/numcpus
 # github.com/ulikunitz/xz v0.5.15
 ## explicit; go 1.12
