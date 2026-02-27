@@ -23,7 +23,7 @@ jobs:
           podman save -o ${{ env.IMAGE_NAME_E2E }}-windows-amd64.tar \
             ${{ env.IMAGE_NAME_E2E}}:windows-amd64
       - name: Upload e2e windows-amd64
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.IMAGE_NAME_E2E }}-windows-amd64
           path: ${{ env.IMAGE_NAME_E2E }}-windows-amd64.tar
