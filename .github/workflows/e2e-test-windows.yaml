@@ -26,7 +26,7 @@ jobs:
     steps:
     - name: Download qe oci image
       id: download-qe-oci-image-artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ env.IMAGE_NAME_E2E }}-windows-amd64
         run-id: ${{ github.event.workflow_run.id }}
