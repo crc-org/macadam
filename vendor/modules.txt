@@ -312,7 +312,7 @@ github.com/coreos/go-systemd/v22/sdjournal
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
 github.com/crc-org/crc/v2/pkg/os/terminal
-# github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
+# github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
 ## explicit; go 1.17
 github.com/crc-org/machine/libmachine/drivers
 github.com/crc-org/machine/libmachine/state
@@ -1296,5 +1296,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
 # github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f
