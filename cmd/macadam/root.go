@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v5/libpod/define"
 	"github.com/crc-org/macadam/cmd/macadam/common"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	"github.com/crc-org/macadam/pkg/cmdline"
@@ -16,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // HelpTemplate is the help template for podman commands
@@ -114,7 +114,7 @@ func machinePreRunE(c *cobra.Command, args []string) error {
 		return err
 	}
 
-	return env.SetupEnvironment(vmProvider)
+	return env.SetupEnvironment(vmProvider, env.DefaultEnvironmentOptions())
 }
 
 func loggingHook() {

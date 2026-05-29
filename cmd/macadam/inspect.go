@@ -8,16 +8,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v5/cmd/podman/utils"
-	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
-	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/crc-org/macadam/pkg/preflights"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/utils"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 var (
@@ -45,7 +45,7 @@ type HostServicesInfo struct {
 }
 
 // this is based on the struct of the same name in
-// github.com/containers/podman/v5/pkg/machine/config.go
+// go.podman.io/podman/v6/pkg/machine/config.go
 type InspectInfo struct {
 	ConfigDir          define.VMFile
 	Created            time.Time
@@ -82,7 +82,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	vms := make([]InspectInfo, 0, len(args))
 	for _, name := range args {
-		mc, _, err := shim.VMExists(name, []vmconfigs.VMProvider{vmProvider})
+		mc, _, err := shim.VMExists(name)
 		if err != nil {
 			errs = append(errs, err)
 			continue

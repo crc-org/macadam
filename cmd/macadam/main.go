@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/crc-org/macadam/cmd/macadam/registry"
+	_ "github.com/crc-org/macadam/cmd/macadam/system"
 
 	"github.com/spf13/cobra"
 )

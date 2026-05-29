@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
-	"unicode"
 
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/libnetwork/util"
@@ -68,55 +66,33 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 }
 
 // ValidateSubnets will validate the subnets for this network.
+// Will check that no subnets are overlapping or duplicated.
 // It also sets the gateway if the gateway is empty and addGateway is set to true
 // IPv6Enabled to true if at least one subnet is ipv6.
 func ValidateSubnets(network *types.Network, addGateway bool, usedNetworks []*net.IPNet) error {
 	for i := range network.Subnets {
+		for j := i + 1; j < len(network.Subnets); j++ {
+			subnetA := network.Subnets[i].Subnet
+			subnetB := network.Subnets[j].Subnet
+
+			if subnetA.String() == subnetB.String() {
+				return fmt.Errorf("duplicate subnets detected: %s", subnetA.String())
+			}
+
+			if networkIntersect(&subnetA.IPNet, &subnetB.IPNet) {
+				return fmt.Errorf("overlapping subnets detected: %s and %s", subnetA.String(), subnetB.String())
+			}
+		}
+
 		err := ValidateSubnet(&network.Subnets[i], addGateway, usedNetworks)
 		if err != nil {
 			return err
 		}
+
 		if util.IsIPv6(network.Subnets[i].Subnet.IP) {
 			network.IPv6Enabled = true
 		}
 	}
-	return nil
-}
-
-func ValidateRoutes(routes []types.Route) error {
-	for _, route := range routes {
-		err := ValidateRoute(route)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ValidateRoute(route types.Route) error {
-	if route.Destination.IP == nil {
-		return errors.New("route destination ip nil")
-	}
-
-	if route.Destination.Mask == nil {
-		return errors.New("route destination mask nil")
-	}
-
-	if route.Gateway == nil {
-		return errors.New("route gateway nil")
-	}
-
-	// Reparse to ensure destination is valid.
-	ip, ipNet, err := net.ParseCIDR(route.Destination.String())
-	if err != nil {
-		return fmt.Errorf("route destination invalid: %w", err)
-	}
-
-	// check that destination is a network and not an address
-	if !ip.Equal(ipNet.IP) {
-		return errors.New("route destination invalid")
-	}
-
 	return nil
 }
 
@@ -130,12 +106,12 @@ func ValidateSetupOptions(n NetUtil, namespacePath string, options types.SetupOp
 	if len(options.Networks) == 0 {
 		return errors.New("must specify at least one network")
 	}
-	for name, netOpts := range options.Networks {
-		network, err := n.Network(name)
+	for _, net := range options.Networks {
+		network, err := n.Network(net.Name)
 		if err != nil {
 			return err
 		}
-		err = validatePerNetworkOpts(network, &netOpts)
+		err = validatePerNetworkOpts(network, &net.PerNetworkOptions)
 		if err != nil {
 			return err
 		}
@@ -158,26 +134,6 @@ func validatePerNetworkOpts(network *types.Network, netOpts *types.PerNetworkOpt
 			}
 			return fmt.Errorf("requested static ip %s not in any subnet on network %s", ip.String(), network.Name)
 		}
-	}
-	return nil
-}
-
-// ValidateInterfaceName validates the interface name based on the following rules:
-// 1. The name must be less than MaxInterfaceNameLength characters
-// 2. The name must not be "." or ".."
-// 3. The name must not contain / or : or any whitespace characters
-// ref to https://github.com/torvalds/linux/blob/81e4f8d68c66da301bb881862735bd74c6241a19/include/uapi/linux/if.h#L33C18-L33C20
-func ValidateInterfaceName(ifName string) error {
-	if len(ifName) > types.MaxInterfaceNameLength {
-		return fmt.Errorf("interface name is too long: interface names must be %d characters or less: %w", types.MaxInterfaceNameLength, types.ErrInvalidArg)
-	}
-	if ifName == "." || ifName == ".." {
-		return fmt.Errorf("interface name is . or ..: %w", types.ErrInvalidArg)
-	}
-	if strings.ContainsFunc(ifName, func(r rune) bool {
-		return r == '/' || r == ':' || unicode.IsSpace(r)
-	}) {
-		return fmt.Errorf("interface name contains / or : or whitespace characters: %w", types.ErrInvalidArg)
 	}
 	return nil
 }

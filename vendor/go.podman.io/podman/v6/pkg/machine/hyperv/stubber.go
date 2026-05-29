@@ -1,0 +1,1095 @@
+//go:build windows
+
+package hyperv
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/Microsoft/go-winio"
+	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
+	"github.com/containers/libhvee/pkg/hypervctl"
+	"github.com/containers/libhvee/pkg/kvp/ginsu"
+	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/cloudinit"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/hyperv/hutil"
+	"go.podman.io/podman/v6/pkg/machine/hyperv/vsock"
+	"go.podman.io/podman/v6/pkg/machine/ignition"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/machine/windows"
+)
+
+type HyperVStubber struct {
+	vmconfigs.HyperVConfig
+}
+
+type permissionChecks struct {
+	isElevatedProcess   func() bool
+	isHyperVAdminMember func() bool
+	vsockEntriesExist   func(int, int, map[uint64]bool) bool
+	existingMachinesNum func() (int, error)
+}
+
+func (h HyperVStubber) defaultPermissionChecks() permissionChecks {
+	return permissionChecks{
+		isElevatedProcess:   windows.HasAdminRights,
+		isHyperVAdminMember: IsHyperVAdminsGroupMember,
+		vsockEntriesExist:   vsock.CheckIfHVSockRegistryEntriesExist,
+		existingMachinesNum: h.countMachinesWithToolname,
+	}
+}
+
+var (
+	exclusiveActive = true
+)
+
+func (h HyperVStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
+	return mc.HyperVHypervisor.UserModeNetworking
+}
+
+func (h HyperVStubber) UseProviderNetworkSetup(mc *vmconfigs.MachineConfig) bool {
+	return mc.HyperVHypervisor.UserModeNetworking == false
+}
+
+func (h HyperVStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
+func (h HyperVStubber) RequireExclusiveActive() bool {
+	return exclusiveActive
+}
+
+func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
+	var err error
+	callbackFuncs := machine.CleanUp()
+	defer callbackFuncs.CleanIfErr(&err)
+	callbackFuncs.Add(createErrorLogCallback(&err))
+	go callbackFuncs.CleanOnSignal()
+
+	hwConfig := hypervctl.HardwareConfig{
+		CPUs:     uint16(mc.Resources.CPUs),
+		DiskPath: mc.ImagePath.GetPath(),
+		DiskSize: uint64(mc.Resources.DiskSize),
+		Memory:   uint64(mc.Resources.Memory),
+	}
+
+	// Collect ports already claimed by other machines so this VM picks
+	// unique ports. The guest has ports hardcoded in ignition/cloud-init so we must
+	// ensure the new machine picks a port that no other machine has baked into its guest.
+	// Otherwise the user could not start them in parallel.W
+	excludePorts := h.portsClaimedByOtherMachines(mc.Name)
+
+	// Allow creation in these two cases:
+	// 1. if the user is Admin
+	// 2. if the user has Hyper-V admin rights and a vsock registry entry exists
+	// *NEW* machines are those created with the vsock entry having the ToolName field.
+	//
+	// This is to prevent to prevent an error for trying to create a vsock entry
+	// in the Windows registry if the user doesn't have the privileges.
+	eventsNum := 1
+	if mc.CloudInit {
+		eventsNum = 0
+	}
+	if err := h.canCreate(len(mc.Mounts), eventsNum, excludePorts); err != nil {
+		// If it returns ErrHypervRegistryUpdateRequiresElevation and we're not already re-executing,
+		// offer to elevate automatically if user is in admin group
+		if errors.Is(err, ErrHypervRegistryUpdateRequiresElevation) &&
+			!windows.IsReExecuting() &&
+			windows.IsInAdministratorsGroup() {
+			message := fmt.Sprintf("%s.\n\n%s", ErrHypervPrepareHostForHyperV().Error(), windows.UACConfirmationPrompt)
+			return launchElevate(message)
+		}
+		return err
+	}
+
+	// Once here, we know the user has admin rights but may not be in
+	// the Hyper-V Administrators group yet. Add them if necessary so
+	// that future commands work without elevation.
+	if windows.IsReExecuting() && !IsHyperVAdminsGroupMember() {
+		u, err := user.Current()
+		if err != nil {
+			return err
+		}
+		logrus.Infof("Adding user %s to the Hyper-V Administrators group", u.Username)
+		if err := AddUserToHyperVAdminGroup(u.Username); err != nil {
+			return err
+		}
+	}
+
+	// HyperVHypervisor is initialized when preparing to use ignition, however hyperv also works with cloud-init
+	// so we need to ensure that HyperVHypervisor is initialized here as well.
+	if mc.HyperVHypervisor == nil {
+		mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
+	}
+
+	// Set userModeNetworking based on cloudInit value for backwards compatibility
+	// Usermode networking is true by default when working with ignition
+	// If cloud-init is enabled, use userModeNetworking from options
+	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit || opts.UserModeNetworking
+
+	if mc.HyperVHypervisor.UserModeNetworking {
+		// count number of existing machines, used later to determine if Registry should be cleaned over a failure
+		machines, err := h.countMachinesWithToolname()
+		if err != nil {
+			return err
+		}
+
+		// Callback to remove any created vsock entries in the Windows Registry if the creation fails
+		removeRegistryEntriesCallBack := func() error {
+			// Allow removal only if user is Admin and this is the first machine created.
+			// If there are already existing machines, the vsock entries should remain.
+			//
+			// There is no need to check for admin rights here as this is already a requirement
+			// to create the first machine and so it would have failed earlier.
+			if machines > 0 {
+				return nil
+			}
+
+			if err := vsock.RemoveAllHVSockRegistryEntries(false); err != nil {
+				return fmt.Errorf("unable to remove hvsock registry entries: %q", err)
+			}
+
+			return nil
+		}
+		callbackFuncs.Add(removeRegistryEntriesCallBack)
+
+		// Attempt to load an existing HVSock registry entry for networking.
+		// If no existing entry is found, create a new one.
+		// Creating a new entry requires administrative rights.
+		networkHVSock, err := vsock.GetAvailableHVSock(vsock.Network, excludePorts)
+		if err != nil {
+			if !windows.HasAdminRights() {
+				return ErrHypervRegistryUpdateRequiresElevation
+			}
+			networkHVSock, err = vsock.NewHVSockRegistryEntry(vsock.Network, false)
+			if err != nil {
+				return err
+			}
+		}
+
+		mc.HyperVHypervisor.NetworkVSock = *networkHVSock
+	} else {
+		mc.SSH.Port = 22
+		hwConfig.Network = true
+	}
+
+	// Add vsock port numbers to mounts
+	err = createShares(mc, excludePorts)
+	if err != nil {
+		return err
+	}
+
+	// GenerateISO MUST be executed after creating shares to ensure we know the vsock ports
+	// to generate the 9p-vsock@.service unit files for the cloud-init user data file
+	if mc.CloudInit {
+		// Generate cloud-init ISO
+		iso, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return fmt.Errorf("generating cloud-init ISO: %w", err)
+		}
+		hwConfig.DVDDiskPath = iso.GetPath()
+	}
+
+	if builder != nil {
+		netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
+		if err != nil {
+			return err
+		}
+
+		builder.WithUnit(ignition.Unit{
+			Contents: ignition.StrToPtr(netUnitFile),
+			Enabled:  ignition.BoolToPtr(true),
+			Name:     "vsock-network.service",
+		})
+
+		builder.WithFile(ignition.File{
+			Node: ignition.Node{
+				Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
+			},
+			FileEmbedded1: ignition.FileEmbedded1{
+				Append: nil,
+				Contents: ignition.Resource{
+					Source: ignition.EncodeDataURLPtr(hutil.HyperVVsockNMConnection),
+				},
+				Mode: ignition.IntToPtr(0o600),
+			},
+		})
+	}
+
+	vmm := hypervctl.NewVirtualMachineManager()
+	err = vmm.NewVirtualMachine(mc.Name, &hwConfig)
+	if err != nil {
+		return err
+	}
+
+	vmRemoveCallback := func() error {
+		vm, err := vmm.GetMachine(mc.Name)
+		if err != nil {
+			return err
+		}
+		return vm.Remove("")
+	}
+
+	callbackFuncs.Add(vmRemoveCallback)
+	err = resizeDisk(mc.Resources.DiskSize, mc.ImagePath)
+	return err
+}
+
+func (h HyperVStubber) Exists(name string) (*bool, error) {
+	// If the user lacks permissions, WMI will throw an access denied error.
+	// We return false to prevent breaking commands like `init`
+	// that loop over all providers to verify machine name uniqueness.
+	if err := VerifyHyperVPermissions(); err != nil {
+		exists := false
+		return &exists, nil //nolint:nilerr
+	}
+
+	vmm := hypervctl.NewVirtualMachineManager()
+	exists, _, err := vmm.GetMachineExists(name)
+	return &exists, err
+}
+
+func (h HyperVStubber) MountType() vmconfigs.VolumeMountType {
+	return vmconfigs.NineP
+}
+
+func (h HyperVStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) error {
+	return nil
+}
+
+func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
+	// Allow removal in these two cases:
+	// 1. if the user is Admin
+	// 2. if the user has Hyper-V admin rights and there are 2+ *NEW* machines.
+	// *NEW* machines are those created with the vsock entry having the ToolName field.
+	//
+	// This is to prevent a non-admin user from deleting the last machine
+	// which would require removal of vsock entries from the Windows Registry.
+	if err := h.canRemove(mc); err != nil {
+		// If we get ErrHypervRegistryRemoveRequiresElevation and we're not already re-executing,
+		// and the user has admin rights (is in admin group), offer to elevate automatically
+		if errors.Is(err, ErrHypervRegistryRemoveRequiresElevation) &&
+			!windows.IsReExecuting() &&
+			windows.IsInAdministratorsGroup() {
+			message := "Removing this Hyper-V machine requires admin rights to clean up the Windows Registry.\n\n" +
+				windows.UACConfirmationPrompt
+			return nil, nil, launchElevate(message)
+		}
+		return nil, nil, err
+	}
+
+	_, vm, err := GetVMFromMC(mc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rmFiles := []string{}
+
+	cloudinitISO, err := cloudinit.GetCloudInitISOVMFile(mc)
+	if err == nil {
+		rmFiles = append(rmFiles, cloudinitISO.GetPath())
+	}
+
+	rmFunc := func() error {
+		var errs []error
+
+		// Remove ignition registry entries - not a fatal error
+		// for vm removal
+		// TODO we could improve this by recommending an action be done
+		if !mc.CloudInit {
+			if err := removeIgnitionFromRegistry(mc, vm); err != nil {
+				errs = append(errs, fmt.Errorf("unable to remove ignition registry entries: %q", err))
+			}
+		}
+
+		if cloudinitISO != nil {
+			if err := cloudinitISO.Delete(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		// disk path removal is done by generic remove
+		if err = vm.Remove(""); err != nil {
+			errs = append(errs, err)
+			return errorhandling.JoinErrors(errs)
+		}
+
+		// remove vsock registry entries
+		if isLegacyMachine(mc) {
+			removeLegacyHvSockEntries(mc)
+		} else {
+			if err := h.removeHvSockFromRegistry(); err != nil {
+				logrus.Errorf("unable to remove hvsock registry entries: %q", err)
+			}
+		}
+
+		return errorhandling.JoinErrors(errs)
+	}
+	return rmFiles, rmFunc, nil
+}
+
+// canCreate checks if the user can create an Hyper-V machine.
+// It returns `nil` if the user can create it. The conditions are:
+//   - the command is running as Administrator (elevated mode)
+//     OR
+//   - vsock entries in the Windows registry already exist and
+//     the user is a member of the Hyper-V Administrators group
+//
+// The `mounts` parameter is the number of Mounts of the machine. A
+// specific Windows registry entry is necessary for every single mount.
+//
+// The `events` parameter is the number of Events (ready) vsock entries
+// required. Pass 0 to skip the Events check (e.g. for cloud-init VMs
+// that do not use the ready vsock).
+//
+// It returns `ErrHypervRegistryUpdateRequiresElevation` if the vsock
+// entries in the Windows registry don't exist.
+//
+// It returns `ErrHypervUserNotInAdminGroup` if the user doesn't
+// belong to the Hyper-V administrators group.
+func (h HyperVStubber) canCreate(mounts, events int, excludePorts map[uint64]bool) error {
+	return checkCanCreate(h.defaultPermissionChecks(), mounts, events, excludePorts)
+}
+
+func checkCanCreate(checks permissionChecks, mounts, events int, excludePorts map[uint64]bool) error {
+	if checks.isElevatedProcess() {
+		return nil
+	}
+	if !checks.vsockEntriesExist(mounts, events, excludePorts) {
+		return ErrHypervRegistryUpdateRequiresElevation
+	}
+	if !checks.isHyperVAdminMember() {
+		return ErrHypervUserNotInAdminGroup
+	}
+	return nil
+}
+
+// launchElevate attempts to automatically re-run the command as administrator
+// This is similar to how WSL handles elevation.
+func launchElevate(message string) error {
+	toolName := env.GetToolName()
+	r, size := utf8.DecodeRuneInString(toolName)
+	title := fmt.Sprintf("%s Machine", string(unicode.ToUpper(r))+toolName[size:]) //nolint:staticcheck
+	if windows.MessageBox(message, title, false) != 1 {
+		return errors.New("elevation process cancelled by user. Please rerun the command as administrator")
+	}
+	err := windows.CreateOrTruncateElevatedOutputFile()
+	if err != nil {
+		return err
+	}
+
+	err = windows.RelaunchElevatedWait()
+	if err != nil {
+		windows.DumpOutputFile()
+		return fmt.Errorf("elevated process failed with error: %w", err)
+	}
+	return define.ErrRelaunchSucceeded
+}
+
+// createErrorLogCallback creates a callback function that logs errors to file when --reexec is detected
+func createErrorLogCallback(err *error) func() error {
+	return func() error {
+		if *err != nil && windows.IsReExecuting() {
+			windows.LogErrorToFile(*err)
+		}
+		return nil
+	}
+}
+
+func isLegacyMachine(mc *vmconfigs.MachineConfig) bool {
+	return mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.MachineName != ""
+}
+
+// canRemove checks if the user can remove an Hyper-V machine.
+// It returns `nil` when the user can remove it. The conditions are:
+//   - the command is running as Administrator (elevated mode)
+//     OR
+//   - the machine isn't a legacy one (one that doesn't share the vsock) AND
+//     the user is a member of the Hyper-V Administrators group AND
+//     it's not the last machine OR the vsock entries have `KeepAfterMachineRemove=true`
+//
+// It returns `ErrHypervRegistryRemoveRequiresElevation` if the machine is legacy one OR
+// if the vsock entry in the Windows registry doesn't have `KeepAfterMachineRemove=true`.
+//
+// It returns `ErrHypervUserNotInAdminGroup` if the user doesn't
+// belogn to the Hyper-V administrators group.
+func (h HyperVStubber) canRemove(mc *vmconfigs.MachineConfig) error {
+	return checkCanRemove(mc, h.defaultPermissionChecks())
+}
+
+func checkCanRemove(mc *vmconfigs.MachineConfig, checks permissionChecks) error {
+	if checks.isElevatedProcess() {
+		return nil
+	}
+	if isLegacyMachine(mc) {
+		return ErrHypervLegacyMachineRequiresElevation
+	}
+	if !checks.isHyperVAdminMember() {
+		return ErrHypervUserNotInAdminGroup
+	}
+	machines, err := checks.existingMachinesNum()
+	if err != nil {
+		return err
+	}
+	if canSkipVSockEntriesRemoval(machines, *mc.HyperVHypervisor) {
+		return nil
+	}
+	return ErrHypervRegistryRemoveRequiresElevation
+}
+
+func canSkipVSockEntriesRemoval(machines int, hv vmconfigs.HyperVConfig) bool {
+	if machines > 1 {
+		return true
+	}
+	if (hv.NetworkVSock.KeyName != "" && !hv.NetworkVSock.KeepAfterMachineRemove) ||
+		(hv.ReadyVsock.KeyName != "" && !hv.ReadyVsock.KeepAfterMachineRemove) {
+		return false
+	}
+	for _, m := range hv.FileserverVSocks {
+		if !m.KeepAfterMachineRemove {
+			return false
+		}
+	}
+	return true
+}
+
+// canStartOrStop checks if the machine can be started or stopped.
+// Legacy machines require admin rights to start or stop.
+func (h HyperVStubber) canStartOrStop(mc *vmconfigs.MachineConfig) error {
+	if windows.HasAdminRights() {
+		return nil
+	}
+
+	// if machine is legacy (machineName field), require admin rights to start or stop
+	if isLegacyMachine(mc) {
+		return ErrHypervLegacyMachineRequiresElevation
+	}
+
+	if err := VerifyHyperVPermissions(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// portsClaimedByOtherMachines collects all vsock ports that are already
+// referenced by other machines' configurations. This is used at VM creation
+// time to ensure the new machine picks a port that no other machine has baked
+// into its guest ignition/cloud-init.
+func (h HyperVStubber) portsClaimedByOtherMachines(currentMachineName string) map[uint64]bool {
+	ports := make(map[uint64]bool)
+	dirs, err := env.GetMachineDirs(h.VMType())
+	if err != nil {
+		logrus.Debugf("could not get machine dirs: %v", err)
+		return ports
+	}
+	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
+	if err != nil {
+		logrus.Debugf("could not load existing machines: %v", err)
+		return ports
+	}
+	for name, mc := range mcs {
+		if name == currentMachineName || mc.HyperVHypervisor == nil {
+			continue
+		}
+		if mc.HyperVHypervisor.ReadyVsock.Port != 0 {
+			ports[mc.HyperVHypervisor.ReadyVsock.Port] = true
+		}
+		if mc.HyperVHypervisor.NetworkVSock.Port != 0 {
+			ports[mc.HyperVHypervisor.NetworkVSock.Port] = true
+		}
+		for _, fs := range mc.HyperVHypervisor.FileserverVSocks {
+			if fs.Port != 0 {
+				ports[fs.Port] = true
+			}
+		}
+	}
+	return ports
+}
+
+// countMachinesWithToolname counts machines whose ReadyVsock.ToolName matches the current tool name.
+func (h HyperVStubber) countMachinesWithToolname() (int, error) {
+	dirs, err := env.GetMachineDirs(h.VMType())
+	if err != nil {
+		return 0, err
+	}
+	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
+	if err != nil {
+		return 0, err
+	}
+	toolName := env.GetToolName()
+	count := 0
+	for _, mc := range mcs {
+		if mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.ToolName == toolName {
+			count++
+		}
+	}
+	return count, nil
+}
+
+// removeLegacyHvSockEntries removes any legacy HVSOCK registry entries associated with the machine.
+// This is used to clean up entries from older versions of Podman that did not manage the Toolname field.
+func removeLegacyHvSockEntries(mc *vmconfigs.MachineConfig) {
+	if mc.HyperVHypervisor.NetworkVSock.MachineName != "" {
+		// Remove the HVSOCK for networking
+		if err := mc.HyperVHypervisor.NetworkVSock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.NetworkVSock.KeyName, err)
+		}
+	}
+
+	if mc.HyperVHypervisor.ReadyVsock.MachineName != "" {
+		// Remove the HVSOCK for events
+		if err := mc.HyperVHypervisor.ReadyVsock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.ReadyVsock.KeyName, err)
+		}
+	}
+
+	for _, mount := range mc.Mounts {
+		if mount.VSockNumber == nil {
+			// nothing to do if the vsock number was never defined
+			continue
+		}
+
+		vsockReg, err := vsock.LoadHVSockRegistryEntry(*mount.VSockNumber)
+		if err != nil {
+			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", *mount.VSockNumber, mount.Target)
+			continue
+		}
+
+		if vsockReg.MachineName == "" {
+			continue
+		}
+
+		if err := vsockReg.Remove(); err != nil {
+			logrus.Debugf("unable to remove vsock %d for mountpoint %s: %v", *mount.VSockNumber, mount.Target, err)
+		}
+	}
+}
+
+func (h HyperVStubber) removeHvSockFromRegistry() error {
+	// Remove hvsock registry entries only if this is the last machine
+	machines, err := h.countMachinesWithToolname()
+	if err != nil {
+		return err
+	}
+	if machines > 1 {
+		return nil
+	}
+	return vsock.RemoveAllHVSockRegistryEntries(false)
+}
+
+func (h HyperVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
+	return nil
+}
+
+func (h HyperVStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.GvproxyCommand) error {
+	if mc.HyperVHypervisor.UserModeNetworking {
+		cmd.AddEndpoint(fmt.Sprintf("vsock://%s", mc.HyperVHypervisor.NetworkVSock.KeyName))
+		return nil
+	}
+	return nil
+}
+
+func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
+	if err := h.canStartOrStop(mc); err != nil {
+		return nil, nil, err
+	}
+
+	_, vm, err := GetVMFromMC(mc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	callbackFuncs := machine.CleanUp()
+	defer callbackFuncs.CleanIfErr(&err)
+	callbackFuncs.Add(createErrorLogCallback(&err))
+	go callbackFuncs.CleanOnSignal()
+
+	if mc.IsFirstBoot() && !mc.CloudInit {
+		// this is added because if the machine does not start
+		// properly on first boot, the next boot will be considered
+		// the first boot again and the addition of the ignition
+		// entries will fail because the key/value pairs already exist.
+		rmIgnCallbackFunc := func() error {
+			return removeIgnitionFromRegistry(mc, vm)
+		}
+		callbackFuncs.Add(rmIgnCallbackFunc)
+
+		// Add ignition entries to windows registry
+		// for first boot only
+		if err = readAndSplitIgnition(mc, vm); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var waitReady func() error
+	var listener io.Closer
+	if mc.HyperVHypervisor.ReadyVsock.KeyName != "" {
+		waitReady, listener, err = mc.HyperVHypervisor.ReadyVsock.ListenSetupWait()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	err = vm.Start()
+	if err != nil {
+		// cleanup the pending listener
+		if listener != nil {
+			_ = listener.Close()
+		}
+		return nil, nil, err
+	}
+
+	startCallback := func() error {
+		return vm.Stop()
+	}
+	callbackFuncs.Add(startCallback)
+
+	// If we are not using user mode networking, we need to retrieve the VM IP address
+	if !mc.HyperVHypervisor.UserModeNetworking {
+		ip, err := getVMIPAddress(mc.Name)
+		if err != nil {
+			return nil, nil, fmt.Errorf("retrieving VM's IP: %w", err)
+		}
+		mc.IPAddress = ip
+	}
+
+	return nil, waitReady, err
+}
+
+// State is returns the state as a define.status.  for hyperv, state differs from others because
+// state is determined by the VM itself.  normally this can be done with vm.State() and a conversion
+// but doing here as well.  this requires a little more interaction with the hypervisor
+func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
+	// If the user does not have permissions, WMI will fail with an error anyway.
+	// Just return Unknown.
+	if !windows.HasAdminRights() && !IsHyperVAdminsGroupMember() {
+		return define.Unknown, nil
+	}
+
+	_, vm, err := GetVMFromMC(mc)
+	if err != nil {
+		return define.Unknown, err
+	}
+	return stateConversion(vm.State())
+}
+
+func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
+	if err := h.canStartOrStop(mc); err != nil {
+		return err
+	}
+
+	vmm := hypervctl.NewVirtualMachineManager()
+	vm, err := vmm.GetMachine(mc.Name)
+	if err != nil {
+		return fmt.Errorf("getting virtual machine: %w", err)
+	}
+	vmState := vm.State()
+	if vm.State() == hypervctl.Disabled {
+		return nil
+	}
+	if vmState != hypervctl.Enabled { // more states could be provided as well
+		return hypervctl.ErrMachineStateInvalid
+	}
+
+	if hardStop {
+		err = vm.StopWithForce()
+	} else {
+		err = vm.Stop()
+	}
+	if err != nil {
+		return err
+	}
+
+	// Stop the 9p server if it's running
+	// If we do not succeed do not return an error so to not block the VM stop
+	dirs, err := env.GetMachineDirs(h.VMType())
+	if err != nil {
+		logrus.Warnf("Failed to get machine dirs for server9p cleanup: %v", err)
+		return nil
+	}
+	err = machine.StopServer9p(mc, dirs)
+	if err != nil {
+		logrus.Warnf("Failed to stop server9p (VM is stopped): %v", err)
+	}
+	return nil
+}
+
+// TODO should this be plumbed higher into the code stack?
+func (h HyperVStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType define.VMType) error {
+	err := machine.StopWinProxy(mc.Name, vmType)
+	// in podman 4, this was a "soft" error; keeping behavior as such
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
+	}
+
+	return nil
+}
+
+func (h HyperVStubber) VMType() define.VMType {
+	return define.HyperVVirt
+}
+
+func GetVMFromMC(mc *vmconfigs.MachineConfig) (*hypervctl.VirtualMachineManager, *hypervctl.VirtualMachine, error) {
+	vmm := hypervctl.NewVirtualMachineManager()
+	vm, err := vmm.GetMachine(mc.Name)
+	return vmm, vm, err
+}
+
+func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
+	switch s {
+	case hypervctl.Enabled:
+		return define.Running, nil
+	case hypervctl.Disabled:
+		return define.Stopped, nil
+	case hypervctl.Starting:
+		return define.Starting, nil
+	}
+	return define.Unknown, fmt.Errorf("unknown state: %q", s.String())
+}
+
+func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	if err := VerifyHyperVPermissions(); err != nil {
+		return err
+	}
+
+	var cpuChanged, memoryChanged bool
+
+	_, vm, err := GetVMFromMC(mc)
+	if err != nil {
+		return err
+	}
+
+	if vm.State() != hypervctl.Disabled {
+		return errors.New("unable to change settings unless vm is stopped")
+	}
+
+	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
+		if err := mc.SetRootful(*opts.Rootful); err != nil {
+			return err
+		}
+	}
+
+	if opts.DiskSize != nil {
+		if err := resizeDisk(*opts.DiskSize, mc.ImagePath); err != nil {
+			return err
+		}
+	}
+	if opts.CPUs != nil {
+		cpuChanged = true
+	}
+	if opts.Memory != nil {
+		memoryChanged = true
+	}
+
+	if cpuChanged || memoryChanged {
+		err := vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
+			if cpuChanged {
+				ps.VirtualQuantity = *opts.CPUs
+			}
+		}, func(ms *hypervctl.MemorySettings) {
+			if memoryChanged {
+				ms.DynamicMemoryEnabled = false
+				mem := uint64(*opts.Memory)
+				ms.VirtualQuantity = mem
+				ms.Limit = mem
+				ms.Reservation = mem
+			}
+		})
+		if err != nil {
+			return fmt.Errorf("setting CPU and Memory for VM: %w", err)
+		}
+	}
+
+	if opts.USBs != nil {
+		return fmt.Errorf("changing USBs not supported for hyperv machines")
+	}
+
+	return nil
+}
+
+func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+	// HyperV is different because it has to know some ignition details before creating the VM.  It cannot
+	// simply be derived. So we create the HyperVConfig here.
+	mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
+	var ignOpts ignition.ReadyUnitOpts
+
+	// Attempt to load an existing HVSock registry entry for events.
+	// If no existing entry is found, create a new one.
+	// Creating a new entry requires administrative rights.
+	readySock, err := vsock.LoadHVSockRegistryEntryByPurpose(vsock.Events)
+	if err != nil {
+		if !windows.HasAdminRights() {
+			if !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+				message := fmt.Sprintf("%s.\n\n%s", ErrHypervPrepareHostForHyperV().Error(), windows.UACConfirmationPrompt)
+				return nil, launchElevate(message)
+			}
+			return nil, ErrHypervRegistryInitRequiresElevation
+		}
+		readySock, err = vsock.NewHVSockRegistryEntry(vsock.Events, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO Stopped here ... fails bc mc.Hypervisor is nil ... this can be nil checked prior and created
+	// however the same will have to be done in create
+	mc.HyperVHypervisor.ReadyVsock = *readySock
+	ignOpts.Port = readySock.Port
+	return &ignOpts, nil
+}
+
+func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) error {
+	var (
+		err        error
+		executable string
+	)
+	callbackFuncs := machine.CleanUp()
+	defer callbackFuncs.CleanIfErr(&err)
+	go callbackFuncs.CleanOnSignal()
+
+	if len(mc.Mounts) == 0 {
+		return nil
+	}
+
+	var (
+		dirs       *define.MachineDirs
+		gvproxyPID int
+	)
+	dirs, err = env.GetMachineDirs(h.VMType())
+	if err != nil {
+		return err
+	}
+	// If user mode networking is enabled, we need to get the GvProxy PID
+	// to pass to the 9p server.
+	// If cloud-init is enabled, we do not need to pass the GvProxy PID to the 9p server.
+	if !mc.CloudInit && mc.HyperVHypervisor.UserModeNetworking {
+		// GvProxy PID file path is now derived
+		gvproxyPIDFile, err := machine.GetGVProxyPIDFile(mc, dirs)
+		if err != nil {
+			return err
+		}
+		gvproxyPID, err = gvproxyPIDFile.ReadPIDFrom()
+		if err != nil {
+			return err
+		}
+	}
+
+	executable, err = os.Executable()
+	if err != nil {
+		return err
+	}
+	// Start the 9p server in the background
+	p9ServerArgs := []string{}
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		p9ServerArgs = append(p9ServerArgs, "--log-level=debug")
+	}
+	p9ServerArgs = append(p9ServerArgs, "machine", "server9p")
+
+	for _, mount := range mc.Mounts {
+		if mount.VSockNumber == nil {
+			return fmt.Errorf("mount %s has no vsock port defined", mount.Source)
+		}
+		p9ServerArgs = append(p9ServerArgs, "--serve", fmt.Sprintf("%s:%s", mount.Source, winio.VsockServiceID(uint32(*mount.VSockNumber)).String()))
+	}
+	if gvproxyPID > 0 {
+		p9ServerArgs = append(p9ServerArgs, fmt.Sprintf("%d", gvproxyPID))
+	}
+
+	logrus.Debugf("Going to start 9p server using command: %s %v", executable, p9ServerArgs)
+
+	fsCmd := exec.Command(executable, p9ServerArgs...)
+
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		log, err := logCommandToFile(fsCmd, fmt.Sprintf("machine-server9p-%s.log", mc.Name))
+		if err != nil {
+			return err
+		}
+		defer log.Close()
+	}
+
+	err = fsCmd.Start()
+	if err != nil {
+		return fmt.Errorf("unable to start 9p server: %v", err)
+	}
+	server9pPID := fsCmd.Process.Pid
+	logrus.Infof("Started 9p server as PID %d", server9pPID)
+
+	// Register an immediate cleanup that kills by PID in case anything
+	// below fails before StopServer9p becomes usable (PID file not yet written).
+	killServer9p := func() error {
+		if p, err := os.FindProcess(server9pPID); err == nil {
+			if err := p.Kill(); err != nil {
+				logrus.Warnf("Failed to kill server9p process %d: %v", server9pPID, err)
+			}
+		}
+		return nil
+	}
+	callbackFuncs.Add(killServer9p)
+
+	// Note: To keep compatibility with upstream podman, when using ignition, no callback is needed to stop the 9p server, because it will stop when
+	// gvproxy stops. When using cloud-init, we need to store the PID file to clean up on VM stop.
+	if mc.CloudInit {
+		// Store the PID file for cleanup on stop
+		serverPIDFile, err := machine.GetServer9pPIDFile(mc, dirs)
+		if err != nil {
+			return fmt.Errorf("unable to get server9p PID file: %w", err)
+		}
+		if err := os.WriteFile(serverPIDFile.GetPath(), []byte(fmt.Sprintf("%d", server9pPID)), 0o644); err != nil {
+			return fmt.Errorf("unable to write server9p PID file: %w", err)
+		}
+		cleanupPIDFile := func() error {
+			if err := serverPIDFile.Delete(); err != nil {
+				logrus.Warnf("Failed to clean up server9p PID file: %v", err)
+			}
+			return nil
+		}
+		callbackFuncs.Add(cleanupPIDFile)
+	}
+
+	// Finalize starting shares after we are confident gvproxy is still alive.
+	err = startShares(mc)
+	return err
+}
+
+func (h HyperVStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {
+	// managed by gvproxy on this backend, so nothing to do
+	return nil
+}
+
+// FIXME: 45c4f6c0320ffd43f593069ad40d325106692b29 added some removeVsockFromRegistry code
+// this code conflicted and no longer seemed relevant so I dropped it, was it correct?
+func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
+	resize := exec.Command("powershell", "-command", fmt.Sprintf("Resize-VHD \"$ENV:IMAGE_PATH\" %d", newSize.ToBytes()))
+	logrus.Debug(resize.Args)
+	resize.Stdout = os.Stdout
+	resize.Stderr = os.Stderr
+	resize.Env = append(os.Environ(), "IMAGE_PATH="+imagePath.GetPath())
+	if err := resize.Run(); err != nil {
+		return fmt.Errorf("resizing image: %q", err)
+	}
+	return nil
+}
+
+func getVMIPAddress(name string) (string, error) {
+	backoff := 500 * time.Millisecond
+	maxBackoffs := 6
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+		ip, err := getIPAddress(name)
+		if err != nil {
+			continue
+		}
+		return ip, nil
+	}
+	return "", fmt.Errorf("unable to retrieve IP address for VM %s after %d attempts", name, maxBackoffs)
+}
+
+func getIPAddress(name string) (string, error) {
+	ipAddress := exec.Command("powershell", []string{"-command", fmt.Sprintf("Get-VM -Name %s | Select-Object -ExpandProperty NetworkAdapters | Select-Object IPAddresses", name)}...)
+	logrus.Debug(ipAddress.Args)
+	var stdout bytes.Buffer
+	ipAddress.Stdout = &stdout
+	ipAddress.Stderr = os.Stderr
+	if err := ipAddress.Run(); err != nil {
+		return "", fmt.Errorf("getting VM IP address: %q", err)
+	}
+	re := regexp.MustCompile(`\{(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}),.*?\}`)
+
+	matches := re.FindStringSubmatch(stdout.String())
+
+	if len(matches) > 1 {
+		ipv4Address := matches[1]
+		// Validate that it's a valid IPv4 address
+		if net.ParseIP(ipv4Address) == nil {
+			return "", fmt.Errorf("invalid IPv4 address extracted: %s", ipv4Address)
+		}
+		return ipv4Address, nil
+	}
+
+	return "", fmt.Errorf("could not extract IPv4 address from output: %s", strings.TrimSpace(stdout.String()))
+}
+
+func getIgnitionReader(mc *vmconfigs.MachineConfig) (*bytes.Reader, error) {
+	ignFile, err := mc.IgnitionFile()
+	if err != nil {
+		return nil, err
+	}
+	ign, err := ignFile.Read()
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(ign), nil
+}
+
+// readAndSplitIgnition reads the ignition file and splits it into key:value pairs
+func readAndSplitIgnition(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMachine) error {
+	reader, err := getIgnitionReader(mc)
+	if err != nil {
+		return err
+	}
+	return vm.SplitAndAddIgnition("ignition.config.", reader)
+}
+
+func removeIgnitionFromRegistry(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMachine) error {
+	// because the vm is down at this point, we cannot query hyperv for these key value pairs.
+	// therefore we recalculate the number of parts ignition file consists of and
+	// remove all ignition key/value pairs the same way they were added
+	reader, err := getIgnitionReader(mc)
+	if err != nil {
+		return err
+	}
+	parts, err := ginsu.Dice(reader)
+	if err != nil {
+		return err
+	}
+	for idx := range parts {
+		key := fmt.Sprintf("ignition.config.%d", idx)
+		if err := vm.RemoveKeyValuePairNoWait(key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func logCommandToFile(c *exec.Cmd, filename string) (*os.File, error) {
+	dir, err := env.GetDataDir(define.HyperVVirt)
+	if err != nil {
+		return nil, fmt.Errorf("obtain machine dir: %w", err)
+	}
+	path := filepath.Join(dir, filename)
+	logrus.Infof("Going to log to %s", path)
+	log, err := os.Create(path)
+	if err != nil {
+		return nil, fmt.Errorf("create log file: %w", err)
+	}
+
+	c.Stdout = log
+	c.Stderr = log
+
+	return log, nil
+}
+
+func (h HyperVStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
+	return false, nil
+}

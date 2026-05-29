@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func ImageExtension(_ define.VMType, sourceURI string) (string, error) {

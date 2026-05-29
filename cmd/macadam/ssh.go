@@ -6,16 +6,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/shim"
 
-	"github.com/containers/podman/v5/cmd/podman/utils"
-	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/cmd/podman/utils"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 var (
@@ -68,7 +68,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 		// note: previous incantations of this up by a specific name
 		// and errors were ignored.  this error is not ignored because
 		// it implies podman cannot read its machine files, which is bad
-		mc, _, err = shim.VMExists(args[0], []vmconfigs.VMProvider{vmProvider})
+		mc, _, err = shim.VMExists(args[0])
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 
 	// If the machine config was not loaded earlier, we load it now
 	if mc == nil {
-		mc, _, err = shim.VMExists(vmName, []vmconfigs.VMProvider{vmProvider})
+		mc, _, err = shim.VMExists(vmName)
 		// we just return generic error message as we cannot be sure the vm should have the default name or not
 		// in the previous if branch we tested with args[0] and it did not exist
 		// here we tried with the default name.

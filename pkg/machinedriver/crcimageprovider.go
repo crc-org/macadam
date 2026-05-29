@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
 	crcos "github.com/crc-org/crc/v2/pkg/os"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 type CrcImagePuller struct {

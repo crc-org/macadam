@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	macadam "github.com/crc-org/macadam/pkg/machinedriver"
 	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/pkg/machine"
 )
 
 var (
@@ -31,6 +31,13 @@ func init() {
 	flags := rmCmd.Flags()
 	formatFlagName := "force"
 	flags.BoolVarP(&destroyOptions.Force, formatFlagName, "f", false, "Stop and do not prompt before rming")
+
+	flags.BoolVar(
+		&destroyOptions.ReExec,
+		"reexec", false,
+		"process was rexeced",
+	)
+	_ = flags.MarkHidden("reexec")
 }
 
 func rm(_ *cobra.Command, args []string) error {

@@ -3,11 +3,11 @@ package provider
 import (
 	"fmt"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
-	hypervPkg "github.com/containers/podman/v5/pkg/machine/hyperv"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	wslPkg "github.com/containers/podman/v5/pkg/machine/wsl"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	hypervPkg "go.podman.io/podman/v6/pkg/machine/hyperv"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	wslPkg "go.podman.io/podman/v6/pkg/machine/wsl"
 )
 
 var defaultProvider = define.WSLVirt

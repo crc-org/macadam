@@ -17,8 +17,8 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v5/pkg/fileserver"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
+	"go.podman.io/podman/v6/pkg/fileserver"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

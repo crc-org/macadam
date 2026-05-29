@@ -23,14 +23,14 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
-	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/machine/libmachine/drivers"
 	"github.com/crc-org/machine/libmachine/state"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 const (
@@ -62,7 +62,7 @@ type Driver struct {
 
 // this func should return the driver by using the provider and machineName
 func GetDriverByProviderAndMachineName(provider vmconfigs.VMProvider, machineName string) (*Driver, error) {
-	mc, _, err := shim.VMExists(machineName, []vmconfigs.VMProvider{provider})
+	mc, _, err := shim.VMExists(machineName)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (d *Driver) initOpts() *define.InitOptions {
 }
 
 func (d *Driver) Reload() error {
-	vmConfig, _, err := shim.VMExists(d.MachineName, []vmconfigs.VMProvider{d.vmProvider})
+	vmConfig, _, err := shim.VMExists(d.MachineName)
 	if err != nil {
 		return err
 	}
@@ -173,15 +173,15 @@ func (d *Driver) Create() error {
 	}
 
 	// Check if machine already exists
-	vmConfig, exists, err := shim.VMExists(d.MachineName, []vmconfigs.VMProvider{d.vmProvider})
+	vmConfig, _, err := shim.VMExists(d.MachineName)
 	if err != nil {
 		return err
 	}
 	// machine exists, return error
-	if exists {
+	if vmConfig != nil {
 		// overwrite vmConfig if machine already exists?
 		d.vmConfig = vmConfig
-		return fmt.Errorf("%s: %w", d.MachineName, define.ErrVMAlreadyExists)
+		return fmt.Errorf("%s: machine already exists", d.MachineName)
 	}
 
 	/*
@@ -233,7 +233,7 @@ func (d *Driver) Create() error {
 	fmt.Println("Machine init complete")
 
 	// most likely not needed as libmachine must already be doing this check somehow
-	vmConfig, _, err = shim.VMExists(initOpts.Name, []vmconfigs.VMProvider{d.vmProvider})
+	vmConfig, _, err = shim.VMExists(initOpts.Name)
 	if err != nil {
 		return err
 	}
@@ -244,10 +244,7 @@ func (d *Driver) Create() error {
 
 func Start(vmConfig *vmconfigs.MachineConfig, vmProvider vmconfigs.VMProvider) error {
 	machineName := vmConfig.Name
-	dirs, err := env.GetMachineDirs(vmProvider.VMType())
-	if err != nil {
-		return err
-	}
+
 	/*
 		mc, err := vmconfigs.LoadMachineByName(machineName, dirs)
 		if err != nil {
@@ -265,7 +262,8 @@ func Start(vmConfig *vmconfigs.MachineConfig, vmProvider vmconfigs.VMProvider) e
 	}
 	slog.Debug("SSH config", "port", vmConfig.SSH.Port, "username", vmConfig.SSH.RemoteUsername, "identity-path", vmConfig.SSH.IdentityPath)
 
-	if err := shim.Start(vmConfig, vmProvider, dirs, startOpts); err != nil {
+	updateSystemConn := false
+	if err := shim.Start(vmConfig, vmProvider, startOpts, &updateSystemConn); err != nil {
 		return err
 	}
 	fmt.Printf("Machine %q started successfully\n", machineName)
@@ -464,14 +462,16 @@ func (d *Driver) Remove() error {
 func (d *Driver) RemoveWithOptions(opts machine.RemoveOptions) error {
 	machineName := d.vmConfig.Name
 	fmt.Printf("Removing machine %q\n", machineName)
-	dirs, err := env.GetMachineDirs(d.vmProvider.VMType())
-	if err != nil {
-		return err
-	}
 
-	if err := shim.Remove(d.vmConfig, d.vmProvider, dirs, opts); err != nil {
+	if err := shim.Remove(d.vmConfig, d.vmProvider, opts); err != nil {
 		/* don’t print anything if the user cancelled the removal */
 		if errors.Is(err, shim.ErrRemoveUserCancelled) {
+			return nil
+		}
+		// ErrRelaunchSucceeded is not a real error: it signals that
+		// an elevated child process completed the removal successfully.
+		// Exit gracefully.
+		if errors.Is(err, define.ErrRelaunchSucceeded) {
 			return nil
 		}
 		return err
@@ -538,12 +538,7 @@ func (d *Driver) Stop() error {
 }
 
 func (d *Driver) stop(hardStop bool) error {
-	dirs, err := env.GetMachineDirs(d.vmProvider.VMType())
-	if err != nil {
-		return err
-	}
-
-	if err := shim.Stop(d.vmConfig, d.vmProvider, dirs, hardStop); err != nil {
+	if err := shim.Stop(d.vmConfig, d.vmProvider, hardStop); err != nil {
 		return err
 	}
 	//newMachineEvent(events.Remove, events.Event{Name: vmName})

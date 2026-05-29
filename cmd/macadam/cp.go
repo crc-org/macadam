@@ -9,14 +9,13 @@ import (
 	"os/exec"
 	"strconv"
 
-	pcopy "github.com/containers/podman/v5/pkg/copy"
-	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/crc-org/macadam/cmd/macadam/registry"
 	provider2 "github.com/crc-org/macadam/pkg/machinedriver/provider"
 	"github.com/spf13/cobra"
+	pcopy "go.podman.io/podman/v6/pkg/copy"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/shim"
 )
 
 var (
@@ -66,7 +65,7 @@ func cpCopy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	mc, _, err := shim.VMExists(vmName, []vmconfigs.VMProvider{vmProvider})
+	mc, _, err := shim.VMExists(vmName)
 	if err != nil {
 		return err
 	}

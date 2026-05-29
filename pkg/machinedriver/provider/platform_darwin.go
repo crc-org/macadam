@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/containers/podman/v5/pkg/machine/applehv"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/libkrun"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/applehv"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/libkrun"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 var defaultProvider = define.AppleHvVirt

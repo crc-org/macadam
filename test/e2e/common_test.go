@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/crc-org/macadam/pkg/imagepullers"
+	"go.podman.io/podman/v6/pkg/machine/define"
 
 	"github.com/crc-org/macadam/test/osprovider"
 	. "github.com/onsi/ginkgo/v2"

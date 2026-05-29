@@ -5,10 +5,10 @@ package provider
 import (
 	"fmt"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
-	qemuPkg "github.com/containers/podman/v5/pkg/machine/qemu"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	qemuPkg "go.podman.io/podman/v6/pkg/machine/qemu"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 var defaultProvider = define.QemuVirt
