@@ -103,7 +103,11 @@ func init_vmName_test(imagePath string, opts ...string) {
 
 	// ssh into the VM and prints user
 	output = runCMDNoWait(checkUser)
-	Expect(strings.TrimSpace(output)).Should(Equal("core"))
+	expectedUser := "core"
+	if len(opts) > 0 && opts[0] == "wsl" {
+		expectedUser = "user"
+	}
+	Expect(strings.TrimSpace(output)).Should(Equal(expectedUser))
 }
 
 func init_cloudinit_test(imagePath string, opts ...string) {
@@ -177,5 +181,9 @@ func init_vm_no_param_test(imagePath string, opts ...string) {
 
 	// ssh into the VM and prints user
 	output = runCMDNoWait(checkUser)
-	Expect(strings.TrimSpace(output)).Should(Equal("core"))
+	expectedUser := "core"
+	if len(opts) > 0 && opts[0] == "wsl" {
+		expectedUser = "user"
+	}
+	Expect(strings.TrimSpace(output)).Should(Equal(expectedUser))
 }

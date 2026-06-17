@@ -12,6 +12,10 @@ param(
 )
 
 
+Write-Host "Updating WSL kernel ..."
+wsl --update
+wsl --shutdown
+
 Move-Item -Path "$targetFolder\bin\e2e.test" -Destination "$targetFolder\bin\e2e.test.exe" -Force
 Move-Item -Path "$targetFolder\bin\macadam" -Destination "$targetFolder\bin\macadam.exe" -Force
 

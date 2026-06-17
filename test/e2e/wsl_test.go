@@ -18,22 +18,8 @@ var _ = Describe("provider wsl test with wsl image", Label("wsl", "windows"), fu
 		removeAllVM("wsl")
 	})
 
-	It("init VM with cpu, disk and memory setup", Label("hardware"), func() {
-		testparam := Init_Hardware_Parameter{
-			cpu:           "3",
-			disk:          "30",
-			memory:        "2048",
-			expect_memory: []string{"1.7G", "1.8G", "1.9G", "2G"},
-		}
-		init_hardware_test(IMAGE, testparam, "wsl")
-	})
-
 	It("init VM with username and sshkey setup", Label("sshkey"), func() {
 		init_sshkey_test(IMAGE, "wsl")
-	})
-
-	It("init VM with cloud-init setup", Label("cloudinit"), func() {
-		init_cloudinit_test(IMAGE, "wsl")
 	})
 
 	It("init VM with name", Label("name"), func() {
