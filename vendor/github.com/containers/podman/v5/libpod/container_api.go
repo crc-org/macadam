@@ -283,6 +283,24 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
+	return c.StopWithArgs(timeout, true)
+}
+
+// StopService stops the container without marking it as stopped by user (e.g. for
+// systemd ExecStop). Containers with restart policy unless-stopped will be
+// eligible to start again on next boot.
+func (c *Container) StopService(timeout uint) (finalErr error) {
+	return c.StopWithArgs(timeout, false)
+}
+
+// StopWithArgs is a version of Stop that allows a timeout to be specified manually
+// and controls whether to set the StoppedByUser state field. If timeout is 0,
+// SIGKILL will be used immediately to kill the container.
+//
+// An explicit stop is treated as a user-driven lifecycle action. Because of
+// that, this path may not trigger automatic restart-policy handling in cleanup,
+// even when stoppedByUser is false.
+func (c *Container) StopWithArgs(timeout uint, stoppedByUser bool) (finalErr error) {
 	// Have to lock the pod the container is a part of.
 	// This prevents running `podman stop` at the same time a
 	// `podman pod start` is running, which could lead to weird races.
@@ -320,8 +338,7 @@ func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
 			return err
 		}
 	}
-
-	return c.stop(timeout)
+	return c.stopInternal(timeout, stoppedByUser)
 }
 
 // Kill sends a signal to a container
@@ -545,7 +562,7 @@ func (c *Container) Export(out io.Writer) error {
 		return fmt.Errorf("cannot mount container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
-	defer c.newContainerEvent(events.Mount)
+	defer c.newContainerEvent(events.Export)
 	return c.export(out)
 }
 
@@ -1091,6 +1108,28 @@ func (c *Container) ShouldRestart(_ context.Context) bool {
 		}
 	}
 	return c.shouldRestart()
+}
+
+// Indicate whether or not the container will should start after a reboot of system
+func (c *Container) ShouldStartOnBoot() bool {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false
+		}
+	}
+
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
+		return false
+	}
+
+	configuredRestartPolicy := c.RestartPolicy()
+	isAlways := configuredRestartPolicy == define.RestartPolicyAlways
+	isUnlessStopped := configuredRestartPolicy == define.RestartPolicyUnlessStopped && !c.state.StoppedByUser
+
+	return isAlways || isUnlessStopped
 }
 
 // CopyFromArchive copies the contents from the specified tarStream to path

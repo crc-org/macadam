@@ -20,7 +20,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
-	github.com/opencontainers/cgroups v0.0.5 // indirect
+	github.com/opencontainers/cgroups v0.0.6 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containernetworking/plugins v1.8.0 // indirect
-	github.com/containers/buildah v1.42.2 // indirect
+	github.com/containers/buildah v1.43.2 // indirect
 	github.com/containers/conmon v2.0.20+incompatible // indirect
 	github.com/containers/gvisor-tap-vsock v0.8.9 // indirect
 	github.com/containers/libhvee v0.11.0 // indirect
@@ -191,4 +191,4 @@ require (
 
 replace github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
 
-replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260618123258-80565df4762a
+replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f

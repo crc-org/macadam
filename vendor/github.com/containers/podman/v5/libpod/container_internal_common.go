@@ -54,6 +54,7 @@ import (
 	"go.podman.io/common/pkg/umask"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/lockfile"
@@ -975,7 +976,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	notifyDir := filepath.Join(c.bundlePath(), "notify")
 	logrus.Debugf("Checking notify %q dir", notifyDir)
 	if err := os.MkdirAll(notifyDir, 0o755); err != nil {
-		if !os.IsExist(err) {
+		if !errors.Is(err, os.ErrExist) {
 			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
 		}
 	}
@@ -1207,11 +1208,10 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 			if mp == "" {
 				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
 			}
-
-			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
+			input, err := chrootarchive.Tar(mp, &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
-			})
+			}, mp)
 			if err != nil {
 				return fmt.Errorf("reading volume directory %q: %w", v.Dest, err)
 			}
@@ -1226,12 +1226,12 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		}
 	}
 
-	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
+	bundle := c.bundlePath()
+	input, err := chrootarchive.Tar(bundle, &archive.TarOptions{
 		Compression:      options.Compression,
 		IncludeSourceDir: true,
 		IncludeFiles:     includeFiles,
-	})
-
+	}, bundle)
 	if err != nil {
 		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
 	}
@@ -1312,10 +1312,10 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 		defer shmDirTarFile.Close()
 
-		input, err := archive.TarWithOptions(c.config.ShmDir, &archive.TarOptions{
+		input, err := chrootarchive.Tar(c.config.ShmDir, &archive.TarOptions{
 			Compression:      archive.Uncompressed,
 			IncludeSourceDir: true,
-		})
+		}, c.config.ShmDir)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -1488,7 +1488,7 @@ func (c *Container) importPreCheckpoint(input string) error {
 
 	defer archiveFile.Close()
 
-	err = archive.Untar(archiveFile, c.bundlePath(), nil)
+	err = chrootarchive.Untar(archiveFile, c.bundlePath(), nil)
 	if err != nil {
 		return fmt.Errorf("unpacking of pre-checkpoint archive %s failed: %w", input, err)
 	}
@@ -1751,7 +1751,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 			defer shmDirTarFile.Close()
 
-			if err := archive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
+			if err := chrootarchive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
 				return nil, 0, err
 			}
 		}
@@ -1791,7 +1791,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			if mountPoint == "" {
 				return nil, 0, fmt.Errorf("unable to import volume %s as it is not mounted: %w", volume.Name(), err)
 			}
-			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
+			if err := chrootarchive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
 				return nil, 0, fmt.Errorf("failed to extract volume %s to %s: %w", volumeFilePath, mountPoint, err)
 			}
 		}
@@ -1953,13 +1953,13 @@ func (c *Container) makeBindMounts() error {
 		// another container.
 		if c.config.NetNsCtr == "" {
 			if resolvePath, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]; ok {
-				if err := os.Remove(resolvePath); err != nil && !os.IsNotExist(err) {
+				if err := os.Remove(resolvePath); err != nil && !errors.Is(err, os.ErrNotExist) {
 					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
 				delete(c.state.BindMounts, resolvconf.DefaultResolvConf)
 			}
 			if hostsPath, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
-				if err := os.Remove(hostsPath); err != nil && !os.IsNotExist(err) {
+				if err := os.Remove(hostsPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
 				delete(c.state.BindMounts, config.DefaultHostsFile)
@@ -2849,7 +2849,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("creating path to container %s /etc/passwd: %w", c.ID(), err)
 			}
 			orig, err := os.ReadFile(originPasswdFile)
-			if err != nil && !os.IsNotExist(err) {
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return "", "", err
 			}
 			passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+passwdEntry)
@@ -2895,7 +2895,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("creating path to container %s /etc/group: %w", c.ID(), err)
 			}
 			orig, err := os.ReadFile(originGroupFile)
-			if err != nil && !os.IsNotExist(err) {
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return "", "", err
 			}
 			groupFile, err := c.writeStringToStaticDir("group", string(orig)+groupEntry)
@@ -2938,7 +2938,7 @@ func (c *Container) cleanupOverlayMounts() error {
 func (c *Container) createSecretMountDir(runPath string) error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
 	err := fileutils.Exists(src)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		if err := umask.MkdirAllIgnoreUmask(src, os.FileMode(0o755)); err != nil {
 			return err
 		}
@@ -3093,7 +3093,7 @@ func (c *Container) fixVolumePermissionsUnlocked(v *ContainerNamedVolume, vol *V
 			if err := setVolumeAtime(mountPoint, st); err != nil {
 				return err
 			}
-		} else if !os.IsNotExist(err) {
+		} else if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 	}
