@@ -103,7 +103,7 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 				}
 			}
 		}
-		if dockerIgnoreErr != nil && !os.IsNotExist(dockerIgnoreErr) {
+		if dockerIgnoreErr != nil && !errors.Is(dockerIgnoreErr, os.ErrNotExist) {
 			return nil, ignoreFile, err
 		}
 	}
@@ -1177,7 +1177,7 @@ func IDtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 	return convertedIDMap
 }
 
-// RuntimeSpecToIDtoolsTo converts runtime spec to the one of the idtools ID mapping
+// RuntimeSpecToIDtools converts runtime spec to the one of the idtools ID mapping
 func RuntimeSpecToIDtools(idMaps []specs.LinuxIDMapping) (convertedIDMap []idtools.IDMap) {
 	for _, idmap := range idMaps {
 		tempIDMap := idtools.IDMap{

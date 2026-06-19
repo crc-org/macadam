@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/podman/v5/libpod/define"
@@ -16,6 +17,17 @@ import (
 	// SQLite backend for database/sql
 	_ "github.com/mattn/go-sqlite3"
 )
+
+// sqliteStatePath returns the path to the sqlite file.
+func sqliteStatePath(runtime *Runtime) string {
+	basePath := runtime.storageConfig.GraphRoot
+	if runtime.storageConfig.TransientStore {
+		basePath = runtime.storageConfig.RunRoot
+	} else if !runtime.storageSet.StaticDirSet {
+		basePath = runtime.config.Engine.StaticDir
+	}
+	return filepath.Join(basePath, sqliteDbFilename)
+}
 
 func initSQLiteDB(conn *sql.DB) (defErr error) {
 	// Start with a transaction to avoid "database locked" errors.

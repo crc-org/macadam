@@ -294,7 +294,11 @@ func (ic *ContainerEngine) ContainerUnpause(_ context.Context, namesOrIds []stri
 	}
 	return reports, nil
 }
-func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+
+// containerStopRunner is the signature for stopping a single container (used to share logic between ContainerStop and ContainerStopService).
+type containerStopRunner func(*libpod.Container, uint) error
+
+func (ic *ContainerEngine) containerStopImpl(ctx context.Context, namesOrIds []string, options entities.StopOptions, runStop containerStopRunner) ([]*entities.StopReport, error) {
 	containers, err := getContainers(ic.Libpod,
 		getContainersOptions{
 			all:     options.All,
@@ -318,13 +322,12 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
-		var err error
+		timeout := c.StopTimeout()
 		if options.Timeout != nil {
-			err = c.StopWithTimeout(*options.Timeout)
-		} else {
-			err = c.Stop()
+			timeout = *options.Timeout
 		}
-		if err != nil {
+
+		if err := runStop(c, timeout); err != nil {
 			switch {
 			case errors.Is(err, define.ErrCtrStopped):
 				logrus.Debugf("Container %s is already stopped", c.ID())
@@ -359,7 +362,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				}
 			}
 		} else {
-			if err = c.Cleanup(ctx, false); err != nil {
+			if err := c.Cleanup(ctx, false); err != nil {
 				// The container could still have been removed, as we unlocked
 				// after we stopped it.
 				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
@@ -382,6 +385,14 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		reports = append(reports, report)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+	return ic.containerStopImpl(ctx, namesOrIds, options, func(c *libpod.Container, t uint) error { return c.StopWithTimeout(t) })
+}
+
+func (ic *ContainerEngine) ContainerStopService(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+	return ic.containerStopImpl(ctx, namesOrIds, options, func(c *libpod.Container, t uint) error { return c.StopService(t) })
 }
 
 func (ic *ContainerEngine) ContainerPrune(_ context.Context, options entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
@@ -874,7 +885,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	return nil
 }
 
-func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.ExecConfig, error) {
+func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, noSession bool) (*libpod.ExecConfig, error) {
 	execConfig := new(libpod.ExecConfig)
 	execConfig.Command = options.Cmd
 	execConfig.Terminal = options.Tty
@@ -887,18 +898,21 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 	execConfig.PreserveFD = options.PreserveFD
 	execConfig.AttachStdin = options.Interactive
 
-	// Make an exit command
-	storageConfig := rt.StorageConfig()
-	runtimeConfig, err := rt.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
+	// Only set up exit command for regular exec sessions, not no-session mode
+	if !noSession {
+		// Make an exit command
+		storageConfig := rt.StorageConfig()
+		runtimeConfig, err := rt.GetConfig()
+		if err != nil {
+			return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
+		}
+		// TODO: Add some ability to toggle syslog
+		exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false, true)
+		if err != nil {
+			return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
+		}
+		execConfig.ExitCommand = exitCommandArgs
 	}
-	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false, true)
-	if err != nil {
-		return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
-	}
-	execConfig.ExitCommand = exitCommandArgs
 
 	return execConfig, nil
 }
@@ -948,12 +962,42 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 		util.ExecAddTERM(ctr.Env(), options.Envs)
 	}
 
-	execConfig, err := makeExecConfig(options, ic.Libpod)
+	execConfig, err := makeExecConfig(options, ic.Libpod, false)
 	if err != nil {
 		return ec, err
 	}
 
 	ec, err = terminal.ExecAttachCtr(ctx, ctr.Container, execConfig, &streams)
+	return define.TranslateExecErrorToExitCode(ec, err), err
+}
+
+func (ic *ContainerEngine) ContainerExecNoSession(_ context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+	ec := define.ExecErrorCodeGeneric
+	err := checkExecPreserveFDs(options)
+	if err != nil {
+		return ec, err
+	}
+
+	containers, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
+	if err != nil {
+		return ec, err
+	}
+	if len(containers) != 1 {
+		return ec, fmt.Errorf("%w: expected to find exactly one container but got %d", define.ErrInternal, len(containers))
+	}
+	ctr := containers[0]
+
+	if options.Tty {
+		util.ExecAddTERM(ctr.Env(), options.Envs)
+	}
+
+	execConfig, err := makeExecConfig(options, ic.Libpod, true)
+	if err != nil {
+		return ec, err
+	}
+
+	ec, err = ctr.ExecNoSession(execConfig, &streams, nil)
+	// Translate exit codes for consistency with regular exec
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
@@ -972,7 +1016,7 @@ func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID str
 	}
 	ctr := containers[0]
 
-	execConfig, err := makeExecConfig(options, ic.Libpod)
+	execConfig, err := makeExecConfig(options, ic.Libpod, false)
 	if err != nil {
 		return "", err
 	}
@@ -1845,15 +1889,15 @@ func (ic *ContainerEngine) ContainerUpdate(_ context.Context, updateOptions *ent
 	if len(containers) != 1 {
 		return "", fmt.Errorf("container not found")
 	}
-	container := containers[0].Container
+	ctr := containers[0]
 
 	updateOptions.Resources, err = specgenutil.UpdateMajorAndMinorNumbers(updateOptions.Resources, updateOptions.DevicesLimits)
 	if err != nil {
 		return "", err
 	}
 
-	if err = container.Update(updateOptions); err != nil {
+	if err = ctr.Container.Update(updateOptions); err != nil {
 		return "", err
 	}
-	return containers[0].ID(), nil
+	return ctr.ID(), nil
 }

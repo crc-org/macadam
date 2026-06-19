@@ -84,7 +84,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.8.0
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.42.2
+# github.com/containers/buildah v1.43.2
 ## explicit; go 1.24.2
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -157,8 +157,8 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260618123258-80565df4762a
-## explicit; go 1.24.2
+# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f
+## explicit; go 1.25.0
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
 github.com/containers/podman/v5/cmd/podman/utils
@@ -671,7 +671,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/opencontainers/cgroups v0.0.5
+# github.com/opencontainers/cgroups v0.0.6
 ## explicit; go 1.23.0
 github.com/opencontainers/cgroups
 github.com/opencontainers/cgroups/devices/config
@@ -1297,4 +1297,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/crc-org/machine => github.com/cfergeau/machine v0.0.0-20241127155529-1b8b9b8d1078
-# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260618123258-80565df4762a
+# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f

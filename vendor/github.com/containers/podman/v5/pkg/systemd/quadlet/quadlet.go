@@ -62,6 +62,7 @@ const (
 	KeyAddHost               = "AddHost"
 	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
+	KeyAppArmor              = "AppArmor"
 	KeyArch                  = "Arch"
 	KeyArtifact              = "Artifact"
 	KeyAuthFile              = "AuthFile"
@@ -248,6 +249,7 @@ var (
 				KeyAddDevice:             true,
 				KeyAddHost:               true,
 				KeyAnnotation:            true,
+				KeyAppArmor:              true,
 				KeyAutoUpdate:            true,
 				KeyCgroupsMode:           true,
 				KeyContainerName:         true,
@@ -673,11 +675,17 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		podman.add("--cgroups=split")
 	}
 
+	// Entrypoint needs special handling: an empty value is valid and means
+	// "clear the image entrypoint" (podman run --entrypoint ""), so it
+	// cannot go through lookupAndAddString which skips empty values.
+	if val, ok := container.Lookup(ContainerGroup, KeyEntrypoint); ok {
+		podman.addf("--entrypoint=%s", val)
+	}
+
 	stringKeys := map[string]string{
 		KeyTimezone:    "--tz",
 		KeyPidsLimit:   "--pids-limit",
 		KeyShmSize:     "--shm-size",
-		KeyEntrypoint:  "--entrypoint",
 		KeyWorkingDir:  "--workdir",
 		KeyIP:          "--ip",
 		KeyIP6:         "--ip6",
@@ -773,6 +781,11 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 	securityLabelLevel, ok := container.Lookup(ContainerGroup, KeySecurityLabelLevel)
 	if ok && len(securityLabelLevel) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
+	}
+
+	apparmor, hasApparmor := container.Lookup(ContainerGroup, KeyAppArmor)
+	if hasApparmor && len(apparmor) > 0 {
+		podman.add("--security-opt", fmt.Sprintf("apparmor=%s", apparmor))
 	}
 
 	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
@@ -1151,7 +1164,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if devValid {
 				podman.add("--opt", fmt.Sprintf("type=%s", devType))
 				if devType == "bind" {
-					service.Add(UnitGroup, "RequiresMountsFor", dev)
+					service.AddEscaped(UnitGroup, "RequiresMountsFor", dev)
 				}
 			} else {
 				return nil, warnings, fmt.Errorf("key Type can't be used without Device")
@@ -1929,7 +1942,7 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	}
 	if source[0] == '/' {
 		// Absolute path
-		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
+		serviceUnitFile.AddEscaped(UnitGroup, "RequiresMountsFor", source)
 	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) || strings.HasSuffix(source, ".artifact") {
 		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {

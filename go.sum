@@ -59,8 +59,8 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.8.0 h1:WjGbV/0UQyo8A4qBsAh6GaDAtu1hevxVxsEuqtBqUFk=
 github.com/containernetworking/plugins v1.8.0/go.mod h1:JG3BxoJifxxHBhG3hFyxyhid7JgRVBu/wtooGEvWf1c=
-github.com/containers/buildah v1.42.2 h1:be4mKtMOtvuW3R1TYWP+MupxzCaq6PRn7+m1iZH9YbE=
-github.com/containers/buildah v1.42.2/go.mod h1:SDA+ClXamnZPV7GBS2uKY0dfXKfvTykSUA+kJWa1mNg=
+github.com/containers/buildah v1.43.2 h1:KbxgDNWtbMTQtbSElh4e/n8pJa9EDF+/jtIKPr1QtZI=
+github.com/containers/buildah v1.43.2/go.mod h1:dXSaAu+S9aiY0j1teX+7btxBKSZlLfWU5LXnXwPaxf8=
 github.com/containers/common v0.64.2 h1:1xepE7QwQggUXxmyQ1Dbh6Cn0yd7ktk14sN3McSWf5I=
 github.com/containers/common v0.64.2/go.mod h1:o29GfYy4tefUuShm8mOn2AiL5Mpzdio+viHI7n24KJ4=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -86,8 +86,8 @@ github.com/coreos/go-systemd/v22 v22.7.0/go.mod h1:xNUYtjHu2EDXbsxz1i41wouACIwT7
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/crc-org/crc/v2 v2.61.0 h1:3O35YguKyB/BYZJUQHyHkdINuIU436yvBLUcX9FLJQQ=
 github.com/crc-org/crc/v2 v2.61.0/go.mod h1:ZtoyAS+AyKqD0b8qiQK/pRXVK2UJ8DO6BxJJkGkcS/I=
-github.com/crc-org/podman-macadam/v5 v5.0.0-20260618123258-80565df4762a h1:T5aLdSrp0gCQlFfd67O12Vsd4AHUN/yHoMAwsN4XFlg=
-github.com/crc-org/podman-macadam/v5 v5.0.0-20260618123258-80565df4762a/go.mod h1:EpazZY2yQTk7w+Ok9M9XpUWVsdkH4wW1ATUZhf3GH9g=
+github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f h1:oNyKdpcZndDyH5wrCF9fd/lhp6Vl4MFFbAYQUb7tEd0=
+github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f/go.mod h1:2X408Nj/H9IULcP1B8I/ak5ysoHuZ7EWfOql9MaTI+8=
 github.com/crc-org/vfkit v0.6.3 h1:X6pHxDWx0jQRV6TpzCmI4tfPyW/2R03HEEiS5vNnsBU=
 github.com/crc-org/vfkit v0.6.3/go.mod h1:jp0CkOQW5BAvSdJSV7OHUuTGRUo7+/fwaFHd+92pqR8=
 github.com/creack/pty v1.1.21 h1:1/QdRyBaHHJP61QkWMXlOIBfsgdDeeKfK8SYVUWJKf0=
@@ -291,8 +291,8 @@ github.com/onsi/ginkgo/v2 v2.31.0 h1:GtuJos5DFUV9EerYJo8RhYxosYNGvOdDE5haKq6Grfs
 github.com/onsi/ginkgo/v2 v2.31.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.42.0 h1:CJby8u36xb7v34W78F8WKvqTQP7PCMIPB78IVDB73l4=
 github.com/onsi/gomega v1.42.0/go.mod h1:M/Uqpu/8qTjtzCLUA2zJHX9Iilrau25x1PdoSRbWh5A=
-github.com/opencontainers/cgroups v0.0.5 h1:DRITAqcOnY0uSBzIpt1RYWLjh5DPDiqUs4fY6Y0ktls=
-github.com/opencontainers/cgroups v0.0.5/go.mod h1:oWVzJsKK0gG9SCRBfTpnn16WcGEqDI8PAcpMGbqWxcs=
+github.com/opencontainers/cgroups v0.0.6 h1:tfZFWTIIGaUUFImTyuTg+Mr5x8XRiSdZESgEBW7UxuI=
+github.com/opencontainers/cgroups v0.0.6/go.mod h1:oWVzJsKK0gG9SCRBfTpnn16WcGEqDI8PAcpMGbqWxcs=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=

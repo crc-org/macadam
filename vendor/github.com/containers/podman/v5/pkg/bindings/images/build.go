@@ -590,7 +590,7 @@ func prepareContainerFiles(containerFiles []string, contextDir string, stdinDest
 		} else {
 			// If Containerfile does not exist, assume it is in context directory and do Not add to tarfile
 			if err := fileutils.Lexists(containerfile); err != nil {
-				if !os.IsNotExist(err) {
+				if !errors.Is(err, os.ErrNotExist) {
 					return nil, err
 				}
 				containerfile = c
@@ -626,7 +626,8 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 		for _, token := range secretOpt {
 			opt, val, hasVal := strings.Cut(token, "=")
 			if hasVal {
-				if opt == "src" {
+				switch opt {
+				case "src":
 					// read specified secret into a tmp file
 					// move tmp file to tar and change secret source to relative tmp file
 					tmpSecretFilePath, err := tempManager.CreateTempSecret(val, contextDir)
@@ -639,7 +640,21 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 
 					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
 					modifiedOpt = append(modifiedOpt, modifiedSrc)
-				} else {
+				case "env":
+					// read specified env into a tmp file
+					// move tmp file to tar and change secret source to relative tmp file
+					secretVal := os.Getenv(val)
+					tmpSecretFilePath, err := tempManager.CreateTempFileFromReader(contextDir, "podman-build-secret-*", strings.NewReader(secretVal))
+					if err != nil {
+						return nil, nil, err
+					}
+
+					// add tmp file to context dir
+					tarContent = append(tarContent, tmpSecretFilePath)
+
+					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
+					modifiedOpt = append(modifiedOpt, modifiedSrc)
+				default:
 					modifiedOpt = append(modifiedOpt, token)
 				}
 			}
@@ -1069,6 +1084,10 @@ func build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	return processBuildResponse(response, stdout, saveFormat)
 }
 
+// nTar builds a gzip-compressed tar of sources and returns it as a ReadCloser.
+// sources[0] is the build context directory (walked recursively). Remaining entries
+// are extra regular files (e.g. secrets) that are always archived; exclude patterns
+// apply only to the first source.
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
@@ -1089,12 +1108,16 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 		defer gw.Close()
 		defer tw.Close()
 		seen := make(map[devino]string)
+		firstSourceAbs := ""
 		for i, src := range sources {
 			source, err := filepath.Abs(src)
 			if err != nil {
 				logrus.Errorf("Cannot stat one of source context: %v", err)
 				merr = multierror.Append(merr, err)
 				return
+			}
+			if i == 0 {
+				firstSourceAbs = source
 			}
 			err = filepath.WalkDir(source, func(path string, dentry fs.DirEntry, err error) error {
 				if err != nil {
@@ -1129,7 +1152,15 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if !dentry.Type().IsRegular() {
 						return fmt.Errorf("path %s must be a regular file", path)
 					}
-					name = filepath.ToSlash(path)
+					// Additional sources are absolute host paths (Containerfiles passed by path, or
+					// temp files such as secrets placed under the context directory). Strip the
+					// resolved context directory so tar member names are relative to that root,
+					// like entries from the primary walk (i == 0). Using the raw absolute path would
+					// produce members that unpack as a spurious host path tree (e.g. Users/...)
+					// instead of files beside the Dockerfile.
+					// https://github.com/containers/podman/issues/28334
+					after, _ := strings.CutPrefix(path, firstSourceAbs)
+					name = filepath.ToSlash(after)
 				}
 				// If name is absolute path, then it has to be containerfile outside of build context.
 				// If not, we should check it for being excluded via pattern matcher.

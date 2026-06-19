@@ -2,6 +2,39 @@
 
 # Changelog
 
+## v1.43.2 (2026-05-29)
+
+    Bump opencontainers/cgroups to v0.0.6
+    bud with ADD with git repository source integration test: go local
+    Add changes to tests/serve/serve.go from 68b29e6
+    Add bare-podman-repo.tar.gz for testing
+    TEMPORARY: Skip a newly-added test
+    Revert urlsource changes in define/types.go
+    Restore the previous TempDirForURL API
+    TempDirForURL: return absolute context path instead of relative subdir
+    TempDirForURL: refactor if-chain into switch statement
+    Prevent symlink-based path traversal in build contexts
+    tests: remove dependencies on online apt repositories
+    Cite go module change
+
+## v1.43.1 (2026-04-07)
+
+    [release-1.43] Bump c/common v0.67.1, c/image v5.39.2
+    update module github.com/go-jose/go-jose/v4 to v4.1.4 [security]
+    ignore ErrLayerUnknown in cache lookup
+    fix setting of gid
+    fix call to chown
+
+## v1.43.0 (2026-02-05)
+
+    [release-1.43] Bump common 0.67.0, image 5.39.1, storage 1.62.0
+    [release-1.43] Bump dest branch in cirrus to 1.43
+    fix(build): make --tag oci-archive:xxx.tar work with simple images
+    test: do not untar archive into fs when checking file names
+    tests: use cached images instead of fedoraproject.org
+    chroot.bats(chroot with overlay root): ensure we can overlay
+    Run: don't try to encode SystemContext with json
+
 ## v1.42.2 (2025-12-02)
 
     [release-1.42] Bump runc to v1.3.4

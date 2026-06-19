@@ -26,6 +26,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (ContainerCopyFunc, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerExec(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
+	ContainerExecNoSession(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
 	ContainerExecDetached(ctx context.Context, nameOrID string, options ExecOptions) (string, error)
 	ContainerExists(ctx context.Context, nameOrID string, options ContainerExistsOptions) (*BoolReport, error)
 	ContainerExport(ctx context.Context, nameOrID string, options ContainerExportOptions) error
@@ -49,6 +50,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	ContainerStat(ctx context.Context, nameOrDir string, path string) (*ContainerStatReport, error)
 	ContainerStats(ctx context.Context, namesOrIds []string, options ContainerStatsOptions) (chan ContainerStatsReport, error)
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
+	ContainerStopService(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
 	ContainerUnmount(ctx context.Context, nameOrIDs []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
@@ -93,6 +95,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
+	QuadletExists(ctx context.Context, name string) (*BoolReport, error)
 	QuadletInstall(ctx context.Context, pathsOrURLs []string, options QuadletInstallOptions) (*QuadletInstallReport, error)
 	QuadletList(ctx context.Context, options QuadletListOptions) ([]*ListQuadlet, error)
 	QuadletPrint(ctx context.Context, quadlet string) (string, error)

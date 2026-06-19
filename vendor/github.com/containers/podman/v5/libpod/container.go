@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -189,6 +190,7 @@ type ContainerState struct {
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
 	// StoppedByUser indicates whether the container was stopped by an
 	// explicit call to the Stop() API.
+	// Warning: This field does persist across system reboots.
 	StoppedByUser bool `json:"stoppedByUser,omitempty"`
 	// RestartPolicyMatch indicates whether the conditions for restart
 	// policy have been met.
@@ -402,7 +404,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 			logrus.Warnf("Error unmarshalling container %s config: %v", c.ID(), err)
 			return c.config.Spec, nil
 		}
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, os.ErrNotExist) {
 		// ignore when the file does not exist
 		return nil, fmt.Errorf("opening container config: %w", err)
 	}
@@ -540,12 +542,7 @@ func (c *Container) Dependencies() []string {
 		return []string{}
 	}
 
-	depends := make([]string, 0, len(dependsCtrs))
-	for ctr := range dependsCtrs {
-		depends = append(depends, ctr)
-	}
-
-	return depends
+	return slices.Collect(maps.Keys(dependsCtrs))
 }
 
 // NewNetNS returns whether the container will create a new network namespace
@@ -1078,7 +1075,7 @@ func (c *Container) StartupHCPassed() (bool, error) {
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
+func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -1092,7 +1089,7 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 
 // namespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) namespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
+func (c *Container) namespacePath(linuxNS LinuxNS) (string, error) {
 	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
 		return "", fmt.Errorf("cannot get namespace path unless container %s is running: %w", c.ID(), define.ErrCtrStopped)
 	}
@@ -1320,7 +1317,20 @@ func (c *Container) HostNetwork() bool {
 // HasHealthCheck returns bool as to whether there is a health check
 // defined for the container
 func (c *Container) HasHealthCheck() bool {
-	return c.config.HealthCheckConfig != nil
+	// Consider a healthcheck present only when a HealthCheckConfig exists
+	// and the Test field contains a meaningful command. Treat an empty
+	// Test slice or the special ["NONE"] sentinel as "no healthcheck".
+	if c.config.HealthCheckConfig == nil {
+		return false
+	}
+	test := c.config.HealthCheckConfig.Test
+	if len(test) == 0 {
+		return false
+	}
+	if len(test) == 1 && strings.ToUpper(test[0]) == define.HealthConfigTestNone {
+		return false
+	}
+	return true
 }
 
 // HealthCheckConfig returns the command and timing attributes of the health check
@@ -1432,18 +1442,20 @@ func (c *Container) NetworkMode() string {
 		// If there is none, it's host networking.
 		// If there is one and it has a path, it's "ns:".
 		foundNetNS := false
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				foundNetNS = true
-				if ns.Path != "" {
-					networkMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					// We're making a network ns,  but not
-					// configuring with Slirp or CNI. That
-					// means it's --net=none
-					networkMode = "none"
+		if ctrSpec.Linux != nil {
+			for _, ns := range ctrSpec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					foundNetNS = true
+					if ns.Path != "" {
+						networkMode = fmt.Sprintf("ns:%s", ns.Path)
+					} else {
+						// We're making a network ns,  but not
+						// configuring with Slirp or CNI. That
+						// means it's --net=none
+						networkMode = "none"
+					}
+					break
 				}
-				break
 			}
 		}
 		if !foundNetNS {

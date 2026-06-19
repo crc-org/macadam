@@ -183,6 +183,10 @@ func (ic *ContainerEngine) ContainerStop(_ context.Context, namesOrIds []string,
 	return reports, nil
 }
 
+func (ic *ContainerEngine) ContainerStopService(_ context.Context, _ []string, _ entities.StopOptions) ([]*entities.StopReport, error) {
+	return nil, fmt.Errorf("container stop as service is not supported when using remote connections")
+}
+
 func (ic *ContainerEngine) ContainerKill(_ context.Context, namesOrIds []string, opts entities.KillOptions) ([]*entities.KillReport, error) {
 	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds, nil)
 	if err != nil {
@@ -656,6 +660,10 @@ func (ic *ContainerEngine) ContainerExec(_ context.Context, nameOrID string, opt
 	}
 
 	return inspectOut.ExitCode, nil
+}
+
+func (ic *ContainerEngine) ContainerExecNoSession(_ context.Context, _ string, _ entities.ExecOptions, _ define.AttachStreams) (int, error) {
+	return 0, errors.New("--no-session is not supported for the remote client")
 }
 
 func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID string, options entities.ExecOptions) (retSessionID string, retErr error) {
