@@ -1,0 +1,96 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+   <Fragment>
+
+      <UI Id="WixUI_Macadam">
+         <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+         <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+         <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+
+         <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+         <Property Id="WixUI_Mode" Value="InstallDir" />
+         <Property Id="ARPNOMODIFY" Value="1" />
+         <Property Id="ARPNOREPAIR" Value="1" />
+
+         <DialogRef Id="DiskCostDlg" />
+         <DialogRef Id="ErrorDlg" />
+         <DialogRef Id="FatalError" />
+         <DialogRef Id="FilesInUse" />
+         <DialogRef Id="MsiRMFilesInUse" />
+         <DialogRef Id="PrepareDlg" />
+         <DialogRef Id="ProgressDlg" />
+         <DialogRef Id="ResumeDlg" />
+         <DialogRef Id="UserExit" />
+
+         <!--   Make sure to include custom dialogs in the installer database via a DialogRef command,
+               especially if they are not included explicitly in the publish chain below -->
+         <DialogRef Id="LicenseAgreementDlg_Macadam" />
+
+         <!-- Custom dialog to ask for removal of old version if an upgrade is detected -->
+         <Dialog Id="OldVersionDlg" Width="240" Height="95" Title="[ProductName] Setup" NoMinimize="yes">
+            <Control Id="Text" Type="Text" X="28" Y="15" Width="194" Height="50">
+               <Text Value="A previous version of Macadam is currently installed. By continuing the installation this version will be uninstalled. Do you want to continue?" />
+            </Control>
+            <Control Id="Exit" Type="PushButton" X="123" Y="67" Width="62" Height="17" Default="yes" Cancel="yes" Text="No, Exit">
+               <Publish Event="EndDialog" Value="Exit" />
+            </Control>
+            <Control Id="Next" Type="PushButton" X="55" Y="67" Width="62" Height="17" Text="Yes, Uninstall">
+               <Publish Event="EndDialog" Value="Return" />
+            </Control>
+         </Dialog>
+
+         <Dialog Id="HyperVConfigDlg" Width="370" Height="270" Title="[ProductName] Setup">
+            <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+            <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+            <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+            <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Configure WSL and Hyper-V for virtual machine management." />
+            <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}WSL and Hyper-V Configuration" />
+            
+            <Control Id="WSLCheckBox" Type="CheckBox" X="20" Y="60" Width="290" Height="17" 
+             Property="ENABLE_WSL" CheckBoxValue="1" 
+             Text="Enable WSL (requires system restart)" />
+
+            <Control Id="WSLHint" Type="Text" X="20" Y="77" Width="310" Height="25" Transparent="yes" NoPrefix="yes" Text="Note: Running 'wsl --update' in PowerShell after restart is recommended for the latest kernel"/>
+
+            <Control Id="HyperVCheckBox" Type="CheckBox" X="20" Y="120" Width="290" Height="17" Property="ENABLE_HYPERV" CheckBoxValue="1" Text="Enable Hyper-V Feature (requires system restart)" />
+            <Control Id="AddUserCheckBox" Type="CheckBox" X="20" Y="140" Width="290" Height="17" Property="ADD_USER_TO_HYPERV_ADMIN_GROUP" CheckBoxValue="1" Text="Add '[%USERDOMAIN]\[LogonUser]' to Hyper-V Administrators group" />
+
+            <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Back" />
+            <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next" />
+            <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+               <Publish Event="SpawnDialog" Value="CancelDlg" />
+            </Control>
+         </Dialog>
+
+         <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+
+         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="OldVersionDlg" Condition="WIX_UPGRADE_DETECTED" />
+         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg_Macadam" Condition="NOT WIX_UPGRADE_DETECTED" />
+
+         <Publish Dialog="OldVersionDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg_Macadam" />
+
+         <Publish Dialog="LicenseAgreementDlg_Macadam" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
+         <Publish Dialog="LicenseAgreementDlg_Macadam" Control="Next" Event="NewDialog" Value="HyperVConfigDlg" Condition="LicenseAccepted = &quot;1&quot;" />
+
+         <Publish Dialog="HyperVConfigDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg_Macadam" />
+         <Publish Dialog="HyperVConfigDlg" Control="Next" Property="HYPERV_ADMIN_MEMBER" Value="[%USERDOMAIN]\[LogonUser]" Order="0" Condition="ADD_USER_TO_HYPERV_ADMIN_GROUP = &quot;1&quot; AND NOT HYPERV_ADMIN_MEMBER" />
+         <Publish Dialog="HyperVConfigDlg" Control="Next" Event="DoAction" Value="CA_Set_WIXUI_EXITDIALOGOPTIONALTEXT_NOREBOOT" Order="1" />
+         <Publish Dialog="HyperVConfigDlg" Control="Next" Event="DoAction" Value="CA_Set_WIXUI_EXITDIALOGOPTIONALTEXT" Order="2" Condition="NOT WIX_UPGRADE_DETECTED AND (ENABLE_HYPERV = &quot;1&quot; OR ENABLE_WSL = &quot;1&quot;)" />
+         <Publish Dialog="HyperVConfigDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="3" />
+         
+         <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="HyperVConfigDlg" Condition="NOT Installed" />
+         <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Condition="Installed" />
+
+         <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+
+         <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+         <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
+         <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+      </UI>
+
+      <UIRef Id="WixUI_Common" />
+
+      <CustomAction Id="CA_Set_WIXUI_EXITDIALOGOPTIONALTEXT" Property="WIXUI_EXITDIALOGOPTIONALTEXT" Value="To finish installation of [ProductName] please restart your computer." />
+      <CustomAction Id="CA_Set_WIXUI_EXITDIALOGOPTIONALTEXT_NOREBOOT" Property="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Successfully installed [ProductName]. Note: You may need to log out and back in for Hyper-V permissions to take effect." />
+   </Fragment>
+</Wix>
+

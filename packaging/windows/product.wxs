@@ -1,0 +1,108 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+    <?ifndef Version?>
+        <?error Version must be defined via command line argument?>
+    <?endif?>
+
+    <Package UpgradeCode="35A25045-FC56-4951-8B27-F9C99DC070C7" Name="Macadam" Version="$(Version)" Manufacturer="Red Hat Inc." Language="1033" InstallerVersion="500">
+        <SummaryInformation Description="Macadam $(Version)" />
+        <Media Id="1" EmbedCab="yes" Cabinet="cab1.cab" />
+        <MajorUpgrade DowngradeErrorMessage="A newer version of Macadam is already installed." />
+        <WixVariable Id="WixUIBannerBmp" Value=".\Resources\banner.png" />
+        <WixVariable Id="WixUIDialogBmp" Value=".\Resources\background.png" />
+        <Icon Id="macadamicon.ico" SourceFile=".\Resources\icon.ico" />
+        <Property Id="ARPPRODUCTICON" Value="macadamicon.ico" />
+        <Property Id="CURRENTBUILD">
+            <RegistrySearch Id="CURRENTBUILDSearch" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuild" Type="raw" />
+        </Property>
+        <Property Id="MINIMUMBUILD" Value="16299" Secure="yes"></Property>
+        <Launch Condition="Installed OR (CURRENTBUILD &gt;= MINIMUMBUILD)" Message="Macadam requires the Windows 10 Fall Creators Update (version 1709) or newer." />
+        <Property Id="WINDOWSEDITION" Secure="yes">
+            <RegistrySearch Id="WindowsEditionReg" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
+        </Property>
+        <Launch Condition="Installed OR (WINDOWSEDITION &lt;&gt; &quot;Core&quot;)" Message="Macadam cannot run on Windows Home edition" />
+
+        <Property Id="POWERSHELLEXE">
+            <RegistrySearch Id="POWERSHELLEXE" Type="raw" Root="HKLM" Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" Name="Path" />
+        </Property>
+
+        <Property Id="ENABLE_WSL" Secure="yes" />
+        <Property Id="ENABLE_HYPERV" Secure="yes" />
+        <Property Id="ADD_USER_TO_HYPERV_ADMIN_GROUP" Secure="yes" />
+        <Property Id="HYPERV_ADMIN_MEMBER" Secure="yes" />
+
+        <!-- Enable WSL and VirtualMachinePlatform via DISM.
+             PowerShell flags are abbreviated to stay within the MSI CustomAction Target column
+             255-char limit (ICE03): -noni = -NonInteractive, -nop = -NoProfile.
+             $e captures $LASTEXITCODE; exit codes 0 (success) and 3010 (reboot required) are
+             treated as success, any other non-zero code causes the install to fail. -->
+        <SetProperty Id="InstallWSL" 
+             Value="&quot;[POWERSHELLEXE]&quot; -noni -nop -Command &quot;&amp; '[System64Folder]dism.exe' /online /enable-feature /featureName:Microsoft-Windows-Subsystem-Linux /featureName:VirtualMachinePlatform /all /norestart /quiet;$e=$LASTEXITCODE;if($e-ne 0-and$e-ne 3010){exit $e}&quot;" 
+             Before="InstallWSL" 
+             Sequence="execute"
+             Condition="NOT Installed AND NOT REMOVE~=&quot;ALL&quot; AND NOT WIX_UPGRADE_DETECTED AND ENABLE_WSL = &quot;1&quot;" />
+        <CustomAction Id="InstallWSL" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
+
+        <!-- Enable Hyper-V via DISM.
+             Same abbreviation rationale as InstallWSL above. -->
+        <SetProperty 
+             Id="InstallHyperv" 
+             Value="&quot;[POWERSHELLEXE]&quot; -noni -nop -Command &quot;&amp; '[System64Folder]dism.exe' /online /enable-feature /featureName:microsoft-hyper-v-all /norestart /quiet;$e=$LASTEXITCODE;if($e-ne 0-and$e-ne 3010-and$e-ne 14003){exit $e}&quot;" 
+             Before="InstallHyperv"
+             Sequence="execute"
+             Condition="NOT Installed AND NOT REMOVE~=&quot;ALL&quot; AND NOT WIX_UPGRADE_DETECTED AND ENABLE_HYPERV = &quot;1&quot;" />
+        <CustomAction Id="InstallHyperv" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
+
+        <!-- Add user to Hyper-V Administrators group (SID S-1-5-32-578).
+             Same abbreviation rationale as InstallWSL above.
+             Additionally: -EA 0 = -ErrorAction SilentlyContinue, ? = Where-Object.
+             Checks existing membership first to avoid errors on reinstall/repair. -->
+        <SetProperty
+            Id="AddUserToHypervAdminGroup"
+            Value="&quot;[POWERSHELLEXE]&quot; -noni -nop -Command &quot;$m=Get-LocalGroupMember -SID S-1-5-32-578 -EA 0;$u='[HYPERV_ADMIN_MEMBER]';if(!($m|?{$_.Name -eq $u})){Add-LocalGroupMember $u -SID S-1-5-32-578}&quot;"
+            Before="AddUserToHypervAdminGroup"
+            Sequence="execute"
+            Condition="NOT Installed AND NOT REMOVE~=&quot;ALL&quot; AND NOT WIX_UPGRADE_DETECTED AND ADD_USER_TO_HYPERV_ADMIN_GROUP = &quot;1&quot;" />
+        <CustomAction Id="AddUserToHypervAdminGroup" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
+
+        <InstallExecuteSequence>
+            <Custom Action="InstallHyperv" After="InstallFiles" Condition="InstallHyperv" />
+            <Custom Action="InstallWSL" After="InstallHyperv" Condition="InstallWSL" />
+            <Custom Action="AddUserToHypervAdminGroup" After="InstallHyperv" Condition="AddUserToHypervAdminGroup" />
+            <ScheduleReboot After="InstallFinalize" Condition="NOT Installed AND NOT REMOVE~=&quot;ALL&quot; AND NOT WIX_UPGRADE_DETECTED AND (ENABLE_HYPERV = &quot;1&quot; OR ENABLE_WSL = &quot;1&quot;)" />
+        </InstallExecuteSequence>
+        <Feature Id="DefaultFeature" Title="Install core features" Level="1" AllowAbsent="no">
+            <ComponentRef Id="MacadamExe" />
+            <ComponentRef Id="GvproxyExe" />
+            <ComponentRef Id="AddToPath" />
+        </Feature>
+        <UI>
+            <UIRef Id="WixUI_ErrorProgressText" />
+            <!-- Define the installer UI -->
+            <UIRef Id="WixUI_Macadam" />
+            <ProgressText Action="InstallWSL" Message="Installing WSL" />
+            <ProgressText Action="InstallHyperv" Message="Installing Hyper-V" />
+            <ProgressText Action="AddUserToHypervAdminGroup" Message="Adding user to Hyper-V Administrators group" />
+        </UI>
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+        <!-- this should help to propagate env var changes -->
+        <util:BroadcastEnvironmentChange />
+        
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="INSTALLDIR" Name="Macadam">
+                <Component Id="MacadamExe">
+                    <File Id="MacadamExe" Source=".\msi\macadam.exe" KeyPath="yes" DiskId="1" />
+                    <RemoveFile Id="RemoveInstallFiles" Name="*.*" On="uninstall" />
+                </Component>
+                <Component Id="GvproxyExe">
+                    <File Id="GvproxyExe" Source=".\msi\gvproxy.exe" KeyPath="yes" DiskId="1" />
+                </Component>
+                <Component Id="AddToPath" Guid="09C1E713-44DE-44C3-BDAD-72BE10C10542">
+                    <CreateFolder />
+                    <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="yes" />
+                </Component>
+            </Directory>
+        </StandardDirectory>
+    </Package>
+</Wix>
+
