@@ -11,7 +11,7 @@ MACADAM_VERSION := $(shell powershell -NoProfile -Command "\
                      [Math]::Min($$v.Minor, 255), \
                      [Math]::Min([Math]::Max($$v.Build, 0), 65535) \
   } else { '0.0.0' }")
-GVPROXY_VERSION ?= 0.8.8
+GVPROXY_VERSION ?= 0.8.9
 GVPROXY_RELEASE_URL ?= https://github.com/containers/gvisor-tap-vsock/releases/download/v$(GVPROXY_VERSION)/gvproxy-windows.exe
 PACKAGE_DIR ?= msi
 BUILD_DIR ?= out
