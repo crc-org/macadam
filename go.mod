@@ -189,4 +189,4 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f
+replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260702123942-6e7a7efb42c1

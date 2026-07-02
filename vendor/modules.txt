@@ -157,7 +157,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f
+# github.com/containers/podman/v5 v5.3.1 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260702123942-6e7a7efb42c1
 ## explicit; go 1.25.0
 github.com/containers/podman/v5/cmd/podman/parse
 github.com/containers/podman/v5/cmd/podman/registry
@@ -1296,4 +1296,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f
+# github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20260702123942-6e7a7efb42c1
