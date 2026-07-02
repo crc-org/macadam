@@ -24,7 +24,7 @@ var (
 		Long:              "Set an updatable virtual machine setting",
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `macadam set --cpus 4 --memory 8192`,
+		Example:           `macadam set --cpus 4 --memory 8192 --disk-size 30`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
@@ -33,8 +33,9 @@ var (
 
 // setFlags holds the values bound to the `set` command's CLI flags.
 type setFlags struct {
-	CPUs   uint64
-	Memory uint64
+	CPUs     uint64
+	Memory   uint64
+	DiskSize uint64
 }
 
 func init() {
@@ -51,6 +52,10 @@ func init() {
 	memoryFlagName := "memory"
 	flags.Uint64VarP(&setOptsFromFlags.Memory, memoryFlagName, "m", 0, "Memory in MiB")
 	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	diskSizeFlagName := "disk-size"
+	flags.Uint64Var(&setOptsFromFlags.DiskSize, diskSizeFlagName, 0, "Disk size in GiB (can only be increased)")
+	_ = setCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
 }
 
 // setMachine applies the requested CPU and/or memory updates to an existing VM.
@@ -83,9 +88,16 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		}
 		setOpts.Memory = &newMemory
 	}
+	if cmd.Flags().Changed("disk-size") {
+		if setOptsFromFlags.DiskSize == 0 {
+			return fmt.Errorf("disk size must be greater than 0")
+		}
+		newDiskSize := strongunits.GiB(setOptsFromFlags.DiskSize)
+		setOpts.DiskSize = &newDiskSize
+	}
 
-	if setOpts.CPUs == nil && setOpts.Memory == nil {
-		return fmt.Errorf("at least one of --cpus or --memory must be specified")
+	if setOpts.CPUs == nil && setOpts.Memory == nil && setOpts.DiskSize == nil {
+		return fmt.Errorf("at least one of --cpus, --memory or --disk-size must be specified")
 	}
 
 	vmProvider, err := provider2.GetProviderOrDefault(provider)
@@ -98,6 +110,11 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if mc == nil {
 		return fmt.Errorf("VM %q does not exist", machineName)
+	}
+	if setOpts.DiskSize != nil {
+		if err := checkNewDiskSize(*setOpts.DiskSize, mc.Resources.DiskSize); err != nil {
+			return err
+		}
 	}
 
 	return shim.Set(mc, vmProvider, setOpts)
@@ -121,6 +138,13 @@ func checkMaxMemory(newMem strongunits.MiB) error {
 	}
 	if total := strongunits.B(memStat.Total); total < newMem.ToBytes() {
 		return fmt.Errorf("requested amount of memory (%d MiB) greater than total system memory (%d MiB)", newMem, strongunits.ToMib(total))
+	}
+	return nil
+}
+
+func checkNewDiskSize(newDiskSize, currentDiskSize strongunits.GiB) error {
+	if newDiskSize <= currentDiskSize {
+		return fmt.Errorf("disk size must be greater than the current disk size (%d GiB)", currentDiskSize)
 	}
 	return nil
 }
