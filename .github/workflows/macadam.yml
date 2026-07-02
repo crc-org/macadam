@@ -102,7 +102,7 @@ jobs:
       - name: Download gvproxy
         if: runner.os == 'Linux'
         run: |
-          wget https://github.com/containers/gvisor-tap-vsock/releases/download/v0.8.6/gvproxy-linux-amd64 -O ${{ github.workspace }}/tools/gvproxy
+          wget https://github.com/containers/gvisor-tap-vsock/releases/download/v0.8.9/gvproxy-linux-amd64 -O ${{ github.workspace }}/tools/gvproxy
           chmod +x ${{ github.workspace }}/tools/gvproxy
       - name: Set up Go
         uses: actions/setup-go@v6
