@@ -86,8 +86,8 @@ github.com/crc-org/crc/v2 v2.62.0 h1:gEXr1ncjYClgct1vINlSSuydz4paQGbU4y+piloEXCQ
 github.com/crc-org/crc/v2 v2.62.0/go.mod h1:B+iIvm9kEfvqgeeENJK4FKaYGueRNtcpGI8UdxK0YE0=
 github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b h1:5577tKzQcPfd/i0dCekY32R9DUi677sNfhVLYKulBGM=
 github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b/go.mod h1:trWeQimjfE3dJ8qWOxI4ePtYm13aecK42bf01s6h/Nc=
-github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f h1:oNyKdpcZndDyH5wrCF9fd/lhp6Vl4MFFbAYQUb7tEd0=
-github.com/crc-org/podman-macadam/v5 v5.0.0-20260619090441-b70fcb41247f/go.mod h1:2X408Nj/H9IULcP1B8I/ak5ysoHuZ7EWfOql9MaTI+8=
+github.com/crc-org/podman-macadam/v5 v5.0.0-20260702123942-6e7a7efb42c1 h1:z+s9U+iPAAsdhBjoh4cA+XmnNUxyMod+1uOFuUgH1BI=
+github.com/crc-org/podman-macadam/v5 v5.0.0-20260702123942-6e7a7efb42c1/go.mod h1:xeuwPeplBs9tGuE8/oi+yNJ/KHOmbZ/CsWoDXSmeox0=
 github.com/crc-org/vfkit v0.6.3 h1:X6pHxDWx0jQRV6TpzCmI4tfPyW/2R03HEEiS5vNnsBU=
 github.com/crc-org/vfkit v0.6.3/go.mod h1:jp0CkOQW5BAvSdJSV7OHUuTGRUo7+/fwaFHd+92pqR8=
 github.com/creack/pty v1.1.21 h1:1/QdRyBaHHJP61QkWMXlOIBfsgdDeeKfK8SYVUWJKf0=
