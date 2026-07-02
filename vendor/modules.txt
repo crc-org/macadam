@@ -307,8 +307,8 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/crc-org/crc/v2 v2.61.0
-## explicit; go 1.25.0
+# github.com/crc-org/crc/v2 v2.62.0
+## explicit; go 1.25.6
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
 github.com/crc-org/crc/v2/pkg/os/terminal
@@ -559,7 +559,7 @@ github.com/lufia/plan9stats
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-colorable v0.1.14
+# github.com/mattn/go-colorable v0.1.15
 ## explicit; go 1.18
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.20

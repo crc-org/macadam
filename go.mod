@@ -1,11 +1,11 @@
 module github.com/crc-org/macadam
 
-go 1.25.0
+go 1.25.6
 
 require (
 	github.com/containers/common v0.64.2
 	github.com/containers/podman/v5 v5.3.1
-	github.com/crc-org/crc/v2 v2.61.0
+	github.com/crc-org/crc/v2 v2.62.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
 	github.com/lima-vm/go-qcow2reader v0.7.1
 	github.com/onsi/ginkgo/v2 v2.32.0
@@ -110,7 +110,7 @@ require (
 	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
