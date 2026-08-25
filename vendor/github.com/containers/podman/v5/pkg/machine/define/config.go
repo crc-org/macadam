@@ -21,6 +21,7 @@ type CreateVMOpts struct {
 	Dirs               *MachineDirs
 	ReExec             bool
 	UserModeNetworking bool
+	Firmware           string
 }
 
 type MachineDirs struct {

@@ -64,6 +64,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	}
 
 	q.QEMUPidPath = mc.QEMUHypervisor.QEMUPidPath
+	q.Firmware = mc.QEMUHypervisor.Firmware
 
 	q.Command = command.NewQemuBuilder(qemuBinary, q.addArchOptions(nil))
 	q.Command.SetBootableImage(mc.ImagePath.GetPath())
@@ -115,6 +116,7 @@ func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineCo
 
 	qemuConfig := vmconfigs.QEMUConfig{
 		QMPMonitor: monitor,
+		Firmware:   opts.Firmware,
 	}
 	machineRuntimeDir, err := mc.RuntimeDir()
 	if err != nil {
@@ -195,11 +197,9 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 
 	cmdLine := q.Command
 
-	// Disable graphic window when not in debug mode
-	// Done in start, so we're not stuck with the debug level we used on init
-	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmdLine.SetDisplay("none")
-	}
+	// Always disable graphic window on Linux (headless); debug logging
+	// should not require a display
+	cmdLine.SetDisplay("none")
 
 	logrus.Debugf("qemu cmd: %v", cmdLine)
 
