@@ -18,7 +18,7 @@ jobs:
           - name: hyperv
             url: "https://crcqe-asia.s3.ap-south-1.amazonaws.com/macadam-image/Fedora-Cloud-Base-Azure-43-1.6.x86_64.vhd"
           - name: wsl
-            url: "https://mirror.stream.centos.org/SIGs/10-stream/altimages/images/wsl/x86_64/CentOS-Stream-Image-WSL-Base.x86_64-10-202601110111.wsl"
+            url: "https://mirror.stream.centos.org/SIGs/10-stream/altimages/images/wsl/x86_64/CentOS-Stream-Image-WSL-Base.x86_64-10-202608080808.wsl"
     if: |
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
@@ -51,11 +51,12 @@ jobs:
         echo "commit_sha=${commit_sha}" >> "$GITHUB_ENV"
 
         # Set status_context
-        status_context="ci/gh/e2e"
-        status_context="${status_context}/windows-${{env.windows-version}}-${{env.windows-featurepack}}-${{ matrix.image.name }}"
+        status_context="ci/gh/e2e/windows-${{env.windows-version}}-${{env.windows-featurepack}}-${{ matrix.image.name }}"
         echo "status_context=${status_context}" >> "$GITHUB_ENV"
 
     - name: Add status to the PR check
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -xuo pipefail
         # Status msg
@@ -66,22 +67,29 @@ jobs:
         # Create status by API call
         curl -L -v -X POST \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{ github.token }}" \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.commit_sha }} \
           -d "${data}"
 
     - name: Create Windows instance
+      env:
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+        AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
       run: |
         sudo chmod -R 777 $GITHUB_WORKSPACE
         # Create instance
         podman run -d --name windows-create --rm \
           -v ${PWD}:/workspace:z \
-          -e ARM_TENANT_ID=${{secrets.ARM_TENANT_ID}} \
-          -e ARM_SUBSCRIPTION_ID=${{secrets.ARM_SUBSCRIPTION_ID}} \
-          -e ARM_CLIENT_ID=${{secrets.ARM_CLIENT_ID}} \
-          -e ARM_CLIENT_SECRET='${{secrets.ARM_CLIENT_SECRET}}' \
-          -e AZURE_STORAGE_ACCOUNT='${{ secrets.AZURE_STORAGE_ACCOUNT }}' \
-          -e AZURE_STORAGE_KEY='${{ secrets.AZURE_STORAGE_KEY }}' \
+          -e ARM_TENANT_ID \
+          -e ARM_SUBSCRIPTION_ID \
+          -e ARM_CLIENT_ID \
+          -e ARM_CLIENT_SECRET \
+          -e AZURE_STORAGE_ACCOUNT \
+          -e AZURE_STORAGE_KEY \
           quay.io/redhat-developer/mapt:v0.12.1 azure \
             windows create \
             --project-name 'windows-desktop-${{ env.windows-version }}-${{ env.windows-featurepack }}-macadam-${{ matrix.image.name }}' \
@@ -99,12 +107,14 @@ jobs:
 
     - name: Run macadam e2e
       run: |
+        mkdir -p $PWD/test-output
         # load image
         podman load -i ${{ env.IMAGE_NAME_E2E }}-windows-amd64.tar
         # run
         ImageURL="${{ matrix.image.url }}"
         cmd="macadam-test/run.ps1 -imageUrl $ImageURL "
 
+        # Restrict volume mount to test-output directory instead of $PWD
         podman run --rm -d --name windows-e2e-test \
           -e OS=windows \
           -e TARGET_HOST=$(cat host) \
@@ -114,7 +124,8 @@ jobs:
           -e TARGET_RESULTS=results \
           -e OUTPUT_FOLDER=/data \
           -e DEBUG=true \
-          -v $PWD:/data:z \
+          -v $PWD/id_rsa:/data/id_rsa:ro,z \
+          -v $PWD/test-output:/data/results:z \
           ${{ env.IMAGE_NAME_E2E }}:windows-amd64 \
               ${cmd}
         podman logs -f windows-e2e-test
@@ -128,20 +139,25 @@ jobs:
         include_passed: true
         detailed_summary: true
         require_tests:  true
-        report_paths: '**/*.xml'
+        report_paths: 'test-output/**/*.xml'
+
+    - name: Sanitize Symlinks
+      if: always()
+      run: |
+        # Explicitly remove symlinks inside test output directory before uploading
+        find test-output -type l -delete || true
 
     - name: Upload e2e results
       uses: actions/upload-artifact@v7
       if: always()
       with:
         name: windows-${{env.windows-version}}${{env.windows-featurepack}}-${{ matrix.image.name }}
-        path: |
-          **/*.xml
-          **/*.results
-          **/*.log
+        path: test-output/
 
     - name: Update status of the PR check
       if: always()
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -xuo
         # Status msg
@@ -155,24 +171,31 @@ jobs:
         # Create status by API call
         curl -L -v -X POST \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{ github.token }}" \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.commit_sha }} \
           -d "${data}"
 
     - name: Destroy instance
       if: always()
+      env:
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+        AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
       run: |
         # Make sure lock is removed
         rm -rf .pulumi/locks/*
         # Destroy
         podman run -d --name windows-destroy --rm \
           -v ${PWD}:/workspace:z \
-          -e ARM_TENANT_ID=${{secrets.ARM_TENANT_ID}} \
-          -e ARM_SUBSCRIPTION_ID=${{secrets.ARM_SUBSCRIPTION_ID}} \
-          -e ARM_CLIENT_ID=${{secrets.ARM_CLIENT_ID}} \
-          -e ARM_CLIENT_SECRET='${{secrets.ARM_CLIENT_SECRET}}' \
-          -e AZURE_STORAGE_ACCOUNT='${{ secrets.AZURE_STORAGE_ACCOUNT }}' \
-          -e AZURE_STORAGE_KEY='${{ secrets.AZURE_STORAGE_KEY }}' \
+          -e ARM_TENANT_ID \
+          -e ARM_SUBSCRIPTION_ID \
+          -e ARM_CLIENT_ID \
+          -e ARM_CLIENT_SECRET \
+          -e AZURE_STORAGE_ACCOUNT \
+          -e AZURE_STORAGE_KEY \
           quay.io/redhat-developer/mapt:v0.12.1 azure \
             windows destroy \
             --project-name 'windows-desktop-${{ env.windows-version }}-${{ env.windows-featurepack }}-macadam-${{ matrix.image.name }}' \
