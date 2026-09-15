@@ -125,9 +125,10 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	mc.Capabilities = opts.Capabilities
 
 	createOpts := machineDefine.CreateVMOpts{
-		Name:   opts.Name,
-		Dirs:   dirs,
-		ReExec: opts.ReExec,
+		Name:     opts.Name,
+		Dirs:     dirs,
+		ReExec:   opts.ReExec,
+		Firmware: opts.Firmware,
 	}
 
 	if umn := opts.UserModeNetworking; umn != nil {

@@ -14,6 +14,8 @@ type QEMUConfig struct {
 	QMPMonitor command.Monitor
 	// QEMUPidPath is where to write the PID for QEMU when running
 	QEMUPidPath *define.VMFile
+	// Firmware is the boot firmware: "" (default/bios) or "uefi"
+	Firmware string
 }
 
 // Stubs
