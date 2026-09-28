@@ -55,6 +55,7 @@ type logger = func(string, ...any)
 type Options struct {
 	Logf          logger // log output function, records decision-making process
 	IgnoreEffects bool   // ignore potential side effects of arguments (unsound)
+	Recover       bool   // catch panics from inliner and report as errors (for ill-typed ASTs)
 }
 
 // Result holds the result of code transformation.
@@ -68,12 +69,22 @@ type Result struct {
 // and returns the updated, formatted content of the caller source file.
 //
 // Inline does not mutate any public fields of Caller or Callee.
-func Inline(caller *Caller, callee *Callee, opts *Options) (*Result, error) {
-	copy := *opts // shallow copy
-	opts = &copy
+func Inline(caller *Caller, callee *Callee, opts *Options) (res *Result, err error) {
+	if opts == nil {
+		opts = new(Options)
+	} else {
+		opts = new(*opts)
+	}
 	// Set default options.
 	if opts.Logf == nil {
 		opts.Logf = func(string, ...any) {}
+	}
+	if opts.Recover {
+		defer func() {
+			if x := recover(); x != nil {
+				err = fmt.Errorf("inlining failed (%q), likely because inputs were ill-typed", x)
+			}
+		}()
 	}
 
 	st := &state{
@@ -725,9 +736,15 @@ func (st *state) inlineCall() (*inlineCallResult, error) {
 				// ordinary/ellipsis call to variadic
 
 				// simplify decl: func(T...) -> func([]T)
-				lastParamField := last(calleeDecl.Type.Params.List)
-				lastParamField.Type = &ast.ArrayType{
-					Elt: lastParamField.Type.(*ast.Ellipsis).Elt,
+				var lastParamFieldType ast.Expr
+				if len(calleeDecl.Type.Params.List) > 0 {
+					lastParamField := last(calleeDecl.Type.Params.List)
+					if ellipsis, ok := lastParamField.Type.(*ast.Ellipsis); ok {
+						lastParamField.Type = &ast.ArrayType{
+							Elt: ellipsis.Elt,
+						}
+					}
+					lastParamFieldType = lastParamField.Type
 				}
 
 				if caller.Call.Ellipsis.IsValid() {
@@ -752,7 +769,7 @@ func (st *state) inlineCall() (*inlineCallResult, error) {
 					}
 					args = append(ordinary, &argument{
 						expr: &ast.CompositeLit{
-							Type: lastParamField.Type,
+							Type: lastParamFieldType,
 							Elts: elts,
 						},
 						typ:        lastParam.obj.Type(),
@@ -768,12 +785,18 @@ func (st *state) inlineCall() (*inlineCallResult, error) {
 		}
 	}
 
-	typeArgs := st.typeArguments(caller.Call)
-	if len(typeArgs) != len(callee.TypeParams) {
-		return nil, fmt.Errorf("cannot inline: type parameter inference is not yet supported")
-	}
-	if err := substituteTypeParams(logf, callee.TypeParams, typeArgs, params, replaceCalleeID); err != nil {
-		return nil, err
+	// Substitute type parameters in calleeDecl AST with type arguments from the
+	// call, and synchronize the parameter metadata.
+	{
+		typeArgs := st.typeArguments(caller.Call)
+		if len(typeArgs) != len(callee.TypeParams) {
+			return nil, fmt.Errorf("cannot inline: type parameter inference is not yet supported")
+		}
+		if err := substituteTypeParams(logf, callee.TypeParams, typeArgs, replaceCalleeID); err != nil {
+			return nil, err
+		}
+		// Synchronize the parameters' type pointers with the mutated calleeDecl.
+		syncParamFieldTypes(calleeDecl, params)
 	}
 
 	// Log effective arguments.
@@ -1506,9 +1529,9 @@ type parameter struct {
 // variadic elimination, and may be unpacked into variadic calls.
 type replacer = func(offset int, repl ast.Expr, unpackVariadic bool)
 
-// substituteTypeParams replaces type parameters in the callee with the corresponding type arguments
-// from the call.
-func substituteTypeParams(logf logger, typeParams []*paramInfo, typeArgs []*argument, params []*parameter, replace replacer) error {
+// substituteTypeParams replaces type parameters in the callee with the
+// corresponding type arguments from the call.
+func substituteTypeParams(logf logger, typeParams []*paramInfo, typeArgs []*argument, replace replacer) error {
 	assert(len(typeParams) == len(typeArgs), "mismatched number of type params/args")
 	for i, paramInfo := range typeParams {
 		arg := typeArgs[i]
@@ -1522,31 +1545,37 @@ func substituteTypeParams(logf logger, typeParams []*paramInfo, typeArgs []*argu
 		for _, ref := range paramInfo.Refs {
 			replace(ref.Offset, internalastutil.CloneNode(arg.expr), false)
 		}
-		// Also replace parameter field types.
-		// TODO(jba): find a way to do this that is not so slow and clumsy.
-		// Ideally, we'd walk each p.fieldType once, replacing all type params together.
-		for _, p := range params {
-			if id, ok := p.fieldType.(*ast.Ident); ok && id.Name == paramInfo.Name {
-				p.fieldType = arg.expr
-			} else {
-				for _, id := range identsNamed(p.fieldType, paramInfo.Name) {
-					replaceNode(p.fieldType, id, arg.expr)
-				}
-			}
-		}
 	}
 	return nil
 }
 
-func identsNamed(n ast.Node, name string) []*ast.Ident {
-	var ids []*ast.Ident
-	ast.Inspect(n, func(n ast.Node) bool {
-		if id, ok := n.(*ast.Ident); ok && id.Name == name {
-			ids = append(ids, id)
+// syncParamFieldTypes synchronizes the fieldType of each parameter in params
+// with the mutated calleeDecl AST. This is necessary because substituteTypeParams
+// mutates the calleeDecl AST, replacing type nodes, but params still references
+// the original (now outdated) type nodes.
+func syncParamFieldTypes(calleeDecl *ast.FuncDecl, params []*parameter) {
+	var i int
+	setFieldType := func(t ast.Expr) {
+		assert(i < len(params), "mismatched parameter count")
+		params[i].fieldType = t
+		i++
+	}
+
+	if calleeDecl.Recv != nil && len(calleeDecl.Recv.List) > 0 {
+		setFieldType(calleeDecl.Recv.List[0].Type)
+	}
+	if calleeDecl.Type.Params != nil {
+		for _, field := range calleeDecl.Type.Params.List {
+			if field.Names == nil {
+				setFieldType(field.Type)
+			} else {
+				for range field.Names {
+					setFieldType(field.Type)
+				}
+			}
 		}
-		return true
-	})
-	return ids
+	}
+	assert(i == len(params), "mismatched parameter count")
 }
 
 // substitute implements parameter elimination by substitution.
@@ -2022,8 +2051,7 @@ func resolveEffects(logf logger, args []*argument, effects []int, sg substGraph)
 		return string("RW"[btoi(effects)]) + i
 	}
 	removed := false
-	for i := len(args) - 1; i >= 0; i-- {
-		argi := args[i]
+	for i, argi := range slices.Backward(args) {
 		if sg.has(argi) && !argi.pure {
 			// i is not bound: check whether it must be bound due to hazards.
 			idx := slices.Index(effects, i)
@@ -2051,7 +2079,7 @@ func resolveEffects(logf logger, args []*argument, effects []int, sg substGraph)
 			}
 		}
 		if !sg.has(argi) {
-			for j := 0; j < i; j++ {
+			for j := range i {
 				argj := args[j]
 				if argj.pure {
 					continue
