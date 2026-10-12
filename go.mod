@@ -7,7 +7,7 @@ require (
 	github.com/containers/podman/v5 v5.3.1
 	github.com/crc-org/crc/v2 v2.62.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
-	github.com/lima-vm/go-qcow2reader v0.7.1
+	github.com/lima-vm/go-qcow2reader v0.8.0
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/sirupsen/logrus v1.9.4
