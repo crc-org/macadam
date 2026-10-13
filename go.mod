@@ -3,7 +3,6 @@ module github.com/crc-org/macadam
 go 1.25.6
 
 require (
-	github.com/containers/common v0.64.2
 	github.com/containers/podman/v5 v5.3.1
 	github.com/crc-org/crc/v2 v2.62.0
 	github.com/crc-org/machine v0.0.0-20240926103419-a943b47fd48b
@@ -19,6 +18,7 @@ require (
 require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/containers/common v0.64.2 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect
