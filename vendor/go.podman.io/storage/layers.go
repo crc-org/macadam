@@ -1575,6 +1575,13 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 	}
 
 	idMappings := idtools.NewIDMappingsFromMaps(moreOptions.UIDMap, moreOptions.GIDMap)
+	if moreOptions.HostUIDMapping && moreOptions.HostGIDMapping {
+		// The layer is host-mapped: its content stays at identity ownership and
+		// any id shifting happens at mount time. Rechowning to the container's
+		// maps here would double-shift the content once the id-mapped mount is
+		// applied, so keep the rechown target at identity.
+		idMappings = &idtools.IDMappings{}
+	}
 	opts := drivers.CreateOpts{
 		MountLabel: mountLabel,
 		StorageOpt: options,
@@ -2605,7 +2612,7 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 	gidLog := make(map[uint32]struct{})
 	var uncompressedCounter *ioutils.WriteCounter
 
-	size, err := func() (int64, error) { // A scope for defer
+	size, err := func() (retSize int64, retErr error) { // A scope for defer
 		compressor, err := pgzip.NewWriterLevel(tarSplitWriter, pgzip.BestSpeed)
 		if err != nil {
 			return -1, err
@@ -2635,12 +2642,27 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 		if uncompressedDigester != nil {
 			uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
 		}
-		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
+		payload, done, err := asm.NewInputTarStreamWithDone(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
 		if err != nil {
 			return -1, err
 		}
+		defer func() {
+			payload.Close()
+			if doneErr := <-done; doneErr != nil && retErr == nil {
+				retErr = doneErr
+			}
+		}()
 
-		return applyDriverFunc(payload)
+		size, err := applyDriverFunc(payload)
+		if err != nil {
+			return -1, err
+		}
+		// Fully consume the payload; it may contain trailing zero padding, and we need all of that
+		// recorded in tar-split (which happens when the data passes through NewInputTarStreamWithDone).
+		if _, err := io.Copy(io.Discard, payload); err != nil {
+			return -1, err
+		}
+		return size, nil
 	}()
 	if err != nil {
 		return nil, err
