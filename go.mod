@@ -11,8 +11,8 @@ require (
 	github.com/onsi/gomega v1.44.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
-	go.podman.io/common v0.67.2
-	go.podman.io/storage v1.62.2
+	go.podman.io/common v0.67.3
+	go.podman.io/storage v1.62.3
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/sigstore/protobuf-specs v0.5.1 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.podman.io/image/v5 v5.39.3 // indirect
+	go.podman.io/image/v5 v5.39.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
@@ -191,4 +191,4 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
 
-replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20261105115736-9bcc7e2127d4
+replace github.com/containers/podman/v5 => github.com/crc-org/podman-macadam/v5 v5.0.0-20261112144229-60ba3d9e031f
