@@ -2,18 +2,20 @@ package archive
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"syscall"
 	"unsafe"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/internal/rootlookupcache"
 	"go.podman.io/storage/internal/stat"
@@ -293,12 +295,6 @@ type nameIno struct {
 	ino  uint64
 }
 
-type nameInoSlice []nameIno
-
-func (s nameInoSlice) Len() int           { return len(s) }
-func (s nameInoSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s nameInoSlice) Less(i, j int) bool { return s[i].name < s[j].name }
-
 // readdirnames is a hacked-apart version of the Go stdlib code, exposing inode
 // numbers further up the stack when reading directory contents. Unlike
 // root.Readdirnames, which returns a list of filenames, this function returns a
@@ -340,9 +336,10 @@ func readdirnames(root *os.Root, fsDirname string) (names []nameIno, err error) 
 		bufp += nb
 	}
 
-	sl := nameInoSlice(names)
-	sort.Sort(sl)
-	return sl, nil
+	slices.SortFunc(names, func(a, b nameIno) int {
+		return cmp.Compare(a.name, b.name)
+	})
+	return names, nil
 }
 
 // parseDirent is a minor modification of unix.ParseDirent (linux version)
@@ -505,7 +502,7 @@ func overlayDeletedFile(layers []string, rootCache *rootlookupcache.Cache, fsPat
 
 // pathrsStat is os.Stat relative to root.
 func pathrsStat(root *os.File, path string) (os.FileInfo, error) {
-	fd, err := securejoin.OpenatInRoot(root, path)
+	fd, err := pathrs.OpenatInRoot(root, path)
 	if err != nil {
 		return nil, err
 	}
