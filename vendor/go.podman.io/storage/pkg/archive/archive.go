@@ -85,10 +85,8 @@ const PaxSchilyXattr = "SCHILY.xattr."
 
 const (
 	tarExt  = "tar"
-	solaris = "solaris"
 	windows = "windows"
 	darwin  = "darwin"
-	freebsd = "freebsd"
 )
 
 var xattrsToIgnore = map[string]any{
@@ -425,7 +423,7 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 		return nil, fmt.Errorf("tar: cannot canonicalize path: %w", err)
 	}
 	hdr.Name = name
-	setHeaderForSpecialDevice(hdr, name, fi.Sys())
+	setHeaderForSpecialDevice(hdr, fi.Sys())
 	return hdr, nil
 }
 
@@ -496,7 +494,7 @@ func (ta *tarWriter) readSecurityXattrToTarHeader(xattrHandle *xattrs.Handle, pa
 		if xattr == "security.capability" {
 			capability, err = normalizeCapabilityRootID(ta.IDMappings, capability)
 			if err != nil {
-				return fmt.Errorf("failed to normalize %q attribute from %q in %q: %w", xattr, fsBasename, parentRoot.Name(), err)
+				return fmt.Errorf("failed to normalize %q attribute from %q: %w", xattr, fsBasename, err)
 			}
 		}
 		hdr.PAXRecords[PaxSchilyXattr+xattr] = string(capability)
@@ -1150,34 +1148,20 @@ func tarWithOptionsTo(dest io.Writer, srcPath string, options *TarOptions) (resu
 			}
 
 			if skip {
-				// If we want to skip this file and its a directory
-				// then we should first check to see if there's an
-				// excludes pattern (e.g. !dir/file) that starts with this
-				// dir. If so then we can't skip this dir.
+				// If we want to skip this file and it's a directory
+				// then we should first check to see if there's a
+				// negation pattern (e.g. !dir/file or !**/*.go) that
+				// might re-include files under this dir. If so then
+				// we can't skip this dir.
 
-				// Its not a dir then so we can just return/skip.
+				// It's not a dir then so we can just return/skip.
 				if !d.IsDir() {
 					return nil
 				}
 
-				// No exceptions (!...) in patterns so just skip dir
-				if !pm.Exclusions() {
-					return filepath.SkipDir
+				if pm.ShouldDescendExcludedDir(relFilePath) {
+					return nil
 				}
-
-				dirSlash := relFilePath + string(filepath.Separator)
-
-				for _, pat := range pm.Patterns() {
-					if !pat.Exclusion() {
-						continue
-					}
-					if strings.HasPrefix(pat.String()+string(filepath.Separator), dirSlash) {
-						// found a match - so can't skip this dir
-						return nil
-					}
-				}
-
-				// No matching exclusion dir so just skip dir
 				return filepath.SkipDir
 			}
 
@@ -1810,8 +1794,7 @@ func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap
 			defer contentWriter.Close()
 			var hashError error
 			var hashWorker sync.WaitGroup
-			hashWorker.Add(1)
-			go func() {
+			hashWorker.Go(func() {
 				t := tar.NewReader(contentReader)
 				_, err := t.Next()
 				if err != nil {
@@ -1820,8 +1803,7 @@ func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap
 				if _, err = io.Copy(hasher, t); err != nil && err != io.EOF {
 					hashError = err
 				}
-				hashWorker.Done()
-			}()
+			})
 			if err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options); err != nil {
 				err = fmt.Errorf("extracting data to %q while copying: %w", dest, err)
 			}
