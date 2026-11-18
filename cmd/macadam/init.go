@@ -86,6 +86,10 @@ func init() {
 	flags.StringSliceVarP(&initOptsFromFlags.CloudInitPaths, CloudInitPathFlagName, "", []string{}, "Path to user-data, meta-data and network-config cloud-init configuration files")
 	_ = initCmd.RegisterFlagCompletionFunc(CloudInitPathFlagName, completion.AutocompleteDefault)
 
+	FirmwareFlagName := "firmware"
+	flags.StringVar(&initOptsFromFlags.Firmware, FirmwareFlagName, "", "Boot firmware: \"uefi\" or \"\" (default BIOS)")
+	_ = initCmd.RegisterFlagCompletionFunc(FirmwareFlagName, completion.AutocompleteNone)
+
 	// User-mode networking flag is only available on Windows (HyperV-only)
 	if runtime.GOOS == "windows" {
 		userModeNetFlagName := "user-mode-networking"
@@ -260,6 +264,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.Volumes = initOptsFromFlags.Volumes
 	initOpts.CloudInit = true // this should be calculated based on the image we want to start ??
 	initOpts.CloudInitPaths = initOptsFromFlags.CloudInitPaths
+	if initOptsFromFlags.Firmware != "" && initOptsFromFlags.Firmware != "uefi" {
+		return fmt.Errorf("invalid firmware %q: must be \"uefi\" or empty (default BIOS)", initOptsFromFlags.Firmware)
+	}
+	initOpts.Firmware = initOptsFromFlags.Firmware
 	initOpts.Capabilities = &define.MachineCapabilities{
 		HasReadyUnit:   false,
 		ForwardSockets: false,

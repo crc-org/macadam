@@ -52,4 +52,5 @@ type InitOptions struct {
 	CloudInit          bool
 	Capabilities       *MachineCapabilities
 	CloudInitPaths     []string // user-data, meta-data and network-config cloud-init configuration file paths
+	Firmware           string   // boot firmware: "" (default/bios) or "uefi"
 }
