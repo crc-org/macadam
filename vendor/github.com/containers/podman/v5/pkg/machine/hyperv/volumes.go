@@ -88,11 +88,25 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 }
 
 func createShares(mc *vmconfigs.MachineConfig) (err error) {
-	for _, mount := range mc.Mounts {
-		testVsock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Fileserver)
-		if err != nil {
-			return err
+	if len(mc.Mounts) == 0 {
+		return nil
+	}
+	fileServerVsocks := vsock.LoadReusableHVSockRegistryEntries(mc.Name, vsock.Fileserver)
+	for i, mount := range mc.Mounts {
+		var testVsock *vsock.HVSockRegistryEntry
+
+		// Check if there's a pre-created file server vsock entry that can be
+		// reused for the current mount.
+		if i < len(fileServerVsocks) {
+			testVsock = fileServerVsocks[i]
+		} else {
+			// If no pre-created entry can be reused, a new one must be created.
+			testVsock, err = vsock.NewHVSockRegistryEntry(mc.Name, vsock.Fileserver)
+			if err != nil {
+				return err
+			}
 		}
+
 		mount.VSockNumber = &testVsock.Port
 		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, testVsock.Port)
 	}
