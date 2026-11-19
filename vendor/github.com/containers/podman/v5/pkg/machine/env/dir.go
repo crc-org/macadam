@@ -21,6 +21,14 @@ var getToolName = sync.OnceValue(func() string {
 	return toolName
 })
 
+// GetToolName returns the name of the tool using this library.
+// The tool name can be customized using the PODMAN_TOOL_PREFIX environment
+// variable; its default value is "podman".
+// When used by macadam it can be customized to use a different name.
+func GetToolName() string {
+	return getToolName()
+}
+
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
 func GetDataDir(vmType define.VMType) (string, error) {

@@ -82,7 +82,10 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit || opts.UserModeNetworking
 
 	if mc.HyperVHypervisor.UserModeNetworking {
-		networkHVSock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Network)
+		// Attempt to load a pre-created HVSock registry entry for networking.
+		// If no reusable entry is found, create a new one.
+		var networkHVSock *vsock.HVSockRegistryEntry
+		networkHVSock, err = vsock.LoadOrCreateHVSockRegistryEntry(mc.Name, vsock.Network)
 		if err != nil {
 			return err
 		}
@@ -196,8 +199,11 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 	rmFunc := func() error {
 		var errs []error
 
-		// Tear down vsocks
+		// Tear down vsocks. Entries marked with KeepAfterMachineRemove are kept.
 		removeNetworkAndReadySocketsFromRegistry(mc)
+		if err := removeShares(mc); err != nil {
+			errs = append(errs, fmt.Errorf("unable to remove file server vsock registry entries: %w", err))
+		}
 
 		// Remove ignition registry entries - not a fatal error
 		// for vm removal
@@ -454,7 +460,9 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.
 	// simply be derived. So we create the HyperVConfig here.
 	mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
 	var ignOpts ignition.ReadyUnitOpts
-	readySock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Events)
+	// Attempt to load a pre-created HVSock registry entry for events.
+	// If no reusable entry is found, create a new one.
+	readySock, err := vsock.LoadOrCreateHVSockRegistryEntry(mc.Name, vsock.Events)
 	if err != nil {
 		return nil, err
 	}
